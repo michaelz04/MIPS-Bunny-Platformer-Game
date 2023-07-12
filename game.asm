@@ -44,8 +44,12 @@
 
 main:
 	li $t0, BASE_ADDRESS
+	addi $t3, $t0, 10000
 	
 MAINLOOP: #main loop for game 
+	
+	li $t0, BASE_ADDRESS
+	addi $t3, $t0, 10000
 	
 	#check keyboard input
 	li $t9, 0xffff0000
@@ -56,20 +60,174 @@ MAINLOOP: #main loop for game
 	beq $t8, 0x61, LEFT #if key = w, go up
 	beq $t8, 0x64, RIGHT #if key = s, go down
 	
-	li $t1, 0xff0000 # $t1 stores the red colour code
-	li $t2, 0x00ff00 # $t2 stores the green colour code
-	li $t3, 0x0000ff # $t3 stores the blue colour code
-	
-	sw $t1, 0($t0) # paint the first (top-left) unit red.
-	sw $t2, 128($t0) # paint the second unit on the first row green. Why $t0+4?
-	sw $t3, 512($t0) # paint the first unit on the second row blue. Why +256?
-
+	li $t1, 0x000000 # $t1 stores the black colour code
+	li $t2, 0xffffff # $t2 stores the white colour code
+	j DRAW_BUNNY
 	
 	#sleep
 	li $v0, 32
-	li $a0, 40 # Wait 40ms
+	li $a0, 20 # Wait 40ms
 	syscall
 
+	j MAINLOOP
+	
+	#draw bunny facing left
+	#start from bottom right, to left
+	#$t3 will contain the bottom right corner address of bunny sprite
+
+DRAW_BUNNY:	
+	#row 1
+	sw $t1, -4($t3) 
+	sw $t1, -8($t3) 
+	sw $t1, -12($t3) 
+	sw $t1, -16($t3) 
+	sw $t1, -20($t3) 
+	sw $t1, -24($t3) 
+	sw $t1, -36($t3) 
+	sw $t1, -40($t3) 
+	sw $t1, -44($t3) 
+	
+	subi $t3, $t3, 512
+	#row 2
+	sw $t1, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t1, -24($t3) 
+	sw $t1, -28($t3) 
+	sw $t1, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t1, -44($t3) 
+	
+	subi $t3, $t3, 512
+	#row 3
+	sw $t1, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t1, -12($t3) 
+	sw $t1, -16($t3) 
+	sw $t1, -20($t3) 
+	sw $t2, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t1, -40($t3) 
+	
+	subi $t3, $t3, 512
+	#row 4
+	sw $t1, 0($t3) 
+	sw $t1, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t2, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t1, -44($t3) 
+	sw $t1, -48($t3) 
+	
+	subi $t3, $t3, 512
+	#row 5
+	sw $t1, 0($t3) 
+	sw $t2, -4($t3) 
+	sw $t1, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t2, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t2, -44($t3) 
+	sw $t2, -48($t3) 
+	sw $t1, -52($t3) 
+	
+	subi $t3, $t3, 512
+	#row 6
+	sw $t1, -4($t3) 
+	sw $t1, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t2, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t1, -40($t3) 
+	sw $t2, -44($t3) 
+	sw $t2, -48($t3) 
+	sw $t1, -52($t3) 
+	
+	subi $t3, $t3, 512
+	#row 7
+	sw $t1, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t2, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t1, -40($t3) 
+	sw $t2, -44($t3) 
+	sw $t2, -48($t3) 
+	sw $t1, -52($t3) 
+	
+	subi $t3, $t3, 512
+	#row 8
+	sw $t1, -16($t3) 
+	sw $t1, -20($t3) 
+	sw $t1, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t2, -44($t3) 
+	sw $t2, -48($t3) 
+	sw $t1, -52($t3) 
+	
+	subi $t3, $t3, 512
+	#row 9
+	sw $t1, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t2, -44($t3) 
+	sw $t1, -48($t3) 
+	
+	subi $t3, $t3, 512
+	#row 10
+	sw $t1, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t1, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t1, -44($t3) 
+	
+	subi $t3, $t3, 512
+	#row 11
+	sw $t1, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t1, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t1, -44($t3) 
+	
+	subi $t3, $t3, 512
+	#row 12
+	sw $t1, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t1, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t1, -44($t3) 
+	
+	subi $t3, $t3, 512
+	#row 13
+	sw $t1, -32($t3) 
+	sw $t1, -40($t3) 
+	
 	j MAINLOOP
 
 UP:
