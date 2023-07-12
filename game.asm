@@ -34,4 +34,53 @@
 #
 #####################################################################
 
+.data
 
+.globl main
+
+.eqv 	BASE_ADDRESS 0x10008000
+
+.text
+
+main:
+	li $t0, BASE_ADDRESS
+	
+MAINLOOP: #main loop for game 
+	
+	#check keyboard input
+	li $t9, 0xffff0000
+	lw $t8, 4($t9)
+	beq $t8, 0x70, EXIT #if key = p, exit
+	beq $t8, 0x77, UP #if key = w, go up
+	beq $t8, 0x73, DOWN #if key = s, go down
+	
+	li $t1, 0xff0000 # $t1 stores the red colour code
+	li $t2, 0x00ff00 # $t2 stores the green colour code
+	li $t3, 0x0000ff # $t3 stores the blue colour code
+	
+	sw $t1, 0($t0) # paint the first (top-left) unit red.
+	sw $t2, 128($t0) # paint the second unit on the first row green. Why $t0+4?
+	sw $t3, 512($t0) # paint the first unit on the second row blue. Why +256?
+	
+	addi $t0, $t0, 4
+	
+	#sleep
+	li $v0, 32
+	li $a0, 40 # Wait 40ms
+	syscall
+
+	j MAINLOOP
+
+UP:
+	addi $t0, $t0, 4
+	j MAINLOOP
+DOWN:
+	addi $t0, $t0, 4
+	li $t8, 0 #reset input
+	j MAINLOOP
+	
+	
+EXIT:
+	#exit
+	li $v0, 10
+	syscall
