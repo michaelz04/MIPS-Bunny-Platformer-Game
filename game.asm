@@ -53,6 +53,8 @@ MAINLOOP: #main loop for game
 	beq $t8, 0x70, EXIT #if key = p, exit
 	beq $t8, 0x77, UP #if key = w, go up
 	beq $t8, 0x73, DOWN #if key = s, go down
+	beq $t8, 0x61, LEFT #if key = w, go up
+	beq $t8, 0x64, RIGHT #if key = s, go down
 	
 	li $t1, 0xff0000 # $t1 stores the red colour code
 	li $t2, 0x00ff00 # $t2 stores the green colour code
@@ -61,8 +63,7 @@ MAINLOOP: #main loop for game
 	sw $t1, 0($t0) # paint the first (top-left) unit red.
 	sw $t2, 128($t0) # paint the second unit on the first row green. Why $t0+4?
 	sw $t3, 512($t0) # paint the first unit on the second row blue. Why +256?
-	
-	addi $t0, $t0, 4
+
 	
 	#sleep
 	li $v0, 32
@@ -72,13 +73,22 @@ MAINLOOP: #main loop for game
 	j MAINLOOP
 
 UP:
-	addi $t0, $t0, 4
+	subi $t0, $t0, 512
+	sw $zero 4($t9)
 	j MAINLOOP
 DOWN:
-	addi $t0, $t0, 4
-	li $t8, 0 #reset input
+	addi $t0, $t0, 512
+	sw $zero 4($t9)
 	j MAINLOOP
-	
+
+LEFT:
+	subi $t0, $t0, 4
+	sw $zero 4($t9)
+	j MAINLOOP
+RIGHT:
+	addi $t0, $t0, 4
+	sw $zero 4($t9)
+	j MAINLOOP
 	
 EXIT:
 	#exit
