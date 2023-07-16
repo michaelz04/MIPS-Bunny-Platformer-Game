@@ -54,9 +54,9 @@
 
 # IMPORTANT $S REGISTERS:
 # $s0: bottom left pixel address of sprite
-# $s1: if sprite jumping = 1, otherwise 0
+# $s1: 
 # $s2: if sprite facing left = 1, otherwise 0
-# $s3 jumping frame counter
+# $s3 
 # $s4
 # $s5
 # $s6
@@ -121,18 +121,8 @@ MAINLOOP: #main loop for game
 	beq $t8, 0x61, LEFT #if key = w, go up
 	beq $t8, 0x64, RIGHT #if key = s, go down
 	
+	AFTER_KEY_PRESS:
 	
-	#if jumping
-	beq $s1 1 JUMPING
-	j SKIP_JUMPING
-	JUMPING:
-	subi $s0, $s0, 512
-	li $v0, 32
-	li $a0, 30
-	syscall	
-	j SKIP_FALLING
-	
-	SKIP_JUMPING:
 	#gravity
 	li $t8, BUNNY_MIN_HEIGHT
 	addi $t8, $t8, BASE_ADDRESS
@@ -146,18 +136,8 @@ MAINLOOP: #main loop for game
 	
 	SKIP_FALLING:
 	
-	#check number of jumping frames
-	beq $s3 10 RESET_JUMP
-	j SKIP_RESET_JUMP
-
-	RESET_JUMP:
-	li $s1 0
-	li $s3 0
 	
-	SKIP_RESET_JUMP:	
-	addi $s3 $s3 1
-	
-	j DRAW_BUNNY
+	jal DRAW_BUNNY
 	
 	
 	#sleep
@@ -173,10 +153,19 @@ MAINLOOP: #main loop for game
 
 UP:
 	sw $zero 4($t9)
-	beq $s1 1 MAINLOOP
-	li $s1 1
+	
+	li $t8 0
+	JUMP_LOOP:
+	subi $s0, $s0, 512
+	j DRAW_BUNNY
+	li $v0, 32
+	li $a0, 30
+	syscall	
+	addi $t8 $t8 1
+	blt $t8 20 JUMP_LOOP
+	
 	#jal CLEAR_BUNNY
-	j MAINLOOP
+	j AFTER_KEY_PRESS
 DOWN:
 	sw $zero 4($t9)
 	addi $s0, $s0, 512
@@ -188,28 +177,29 @@ DOWN:
 	SUB_DOWN: subi $s0, $s0, 512
 	SKIP_SUB_DOWN:
 	
-	j MAINLOOP
+	j AFTER_KEY_PRESS
 
 LEFT:
 	#j CLEAR_SCREEN
 	sw $zero 4($t9)
 	subi $s0, $s0, 4
 	li $s2 1
-	
-	j MAINLOOP
+	j AFTER_KEY_PRESS
 RIGHT:
 	#j CLEAR_SCREEN
 	sw $zero 4($t9)
 	addi $s0, $s0, 4
 	li $s2 0
-	#check if bunny is in boundaries
-	j MAINLOOP
+	# if bunny is in boundaries
+	j AFTER_KEY_PRESS
 
 
 
 DRAW_BUNNY:
 	beq $s2 1 DRAW_BUNNY_LEFT
 	j DRAW_BUNNY_RIGHT
+	DRAW_BUNNY_END:
+	jr $ra
 	
 #draw bunny facing left
 #start from bottom right, to left
@@ -371,7 +361,7 @@ DRAW_BUNNY_LEFT:
 	sw $t1, -40($t3) 
 
 	
-	j MAINLOOP
+	j DRAW_BUNNY_END
 
 DRAW_BUNNY_RIGHT:
 	li $t1, 0x000000 # $t1 stores the black colour code
@@ -528,7 +518,7 @@ DRAW_BUNNY_RIGHT:
 	sw $t1, -12($t3) 
 	sw $t1, -20($t3) 
 	
-	j MAINLOOP
+	j DRAW_BUNNY_END
 	
 CLEAR_BUNNY:
 	li $t1, 0x000000 # $t1 stores the black colour code
