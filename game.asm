@@ -39,7 +39,7 @@
 .globl main
 
 .eqv 	BASE_ADDRESS 	0x10008000
-.eqv 	SLEEP_MS 	30
+.eqv 	SLEEP_MS 	40
 
 .eqv 	BORDER_HEIGHT	500
 .eqv	BORDER_WIDTH	500
@@ -50,17 +50,22 @@
 .eqv	BUNNY_MAX_HEIGHT	7220  #14 * 512 + 13*4
 .eqv	BUNNY_MIN_HEIGHT	31744  #62 * 512
 
+.eqv 	OFFSET_BOTTOM_LEFT	-56    # $s0 + OFFSET_BOTTOM_LEFT is bottom left pixel address of sprite
+.eqv 	OFFSET_TOP_LEFT		-6712  # $s0 + OFFSET_TOP_LEFT is top left pixel address of sprite
+.eqv 	OFFSET_TOP_RIGHT	-6656  # $s0 + OFFSET_TOP_RIGHT is top right pixel address of sprite
+
+
 .text
 
 # IMPORTANT $S REGISTERS:
-# $s0: bottom left pixel address of sprite
+# $s0: bottom right pixel address of sprite
 # $s1: if sprite jumping = 1, otherwise 0
 # $s2: if sprite facing left = 1, otherwise 0
-# $s3 jumping frame counter
-# $s4
+# $s3: jumping frame counter
+# $s4: tracks net sprite position change
 # $s5
 # $s6
-# $s7
+# $s7: tracks if sprite is in the air = 1, ie not standing on platform
 
 main:
 	#initialize $s registers
@@ -70,6 +75,7 @@ main:
 	li $s1, 0
 	li $s2, 0
 	li $s3, 0
+	li $s7, 0
 
 CLEAR_SCREEN:
 	#clear screen
@@ -108,9 +114,9 @@ CLEAR_DONE:
 	
 
 
-MAINLOOP: #main loop for game 
+MAIN_LOOP: #main loop for game 
 	
-	
+	li $s4 0 #load net position change
 	
 	#check keyboard input
 	li $t9, 0xffff0000
@@ -121,15 +127,31 @@ MAINLOOP: #main loop for game
 	beq $t8, 0x61, LEFT #if key = w, go up
 	beq $t8, 0x64, RIGHT #if key = s, go down
 	
+	AFTER_KEY_PRESS:
+	
+	#check for collisions
+	
+	#check if on ground for now
+	
 	
 	#if jumping
 	beq $s1 1 JUMPING
 	j SKIP_JUMPING
 	JUMPING:
-	subi $s0, $s0, 512
+	subi $s4, $s4, 512
 	li $v0, 32
 	li $a0, 30
 	syscall	
+	#check number of jumping frames
+	beq $s3 20 RESET_JUMP
+	j SKIP_RESET_JUMP
+
+	RESET_JUMP:
+	li $s1 0
+	li $s3 0
+	
+	SKIP_RESET_JUMP:	
+	addi $s3 $s3 1
 	j SKIP_FALLING
 	
 	SKIP_JUMPING:
@@ -146,26 +168,18 @@ MAINLOOP: #main loop for game
 	
 	SKIP_FALLING:
 	
-	#check number of jumping frames
-	beq $s3 10 RESET_JUMP
-	j SKIP_RESET_JUMP
-
-	RESET_JUMP:
-	li $s1 0
-	li $s3 0
 	
-	SKIP_RESET_JUMP:	
-	addi $s3 $s3 1
 	
 	j DRAW_BUNNY
 	
+
 	
 	#sleep
 	li $v0, 32
 	li $a0, SLEEP_MS
 	syscall
 
-	j MAINLOOP
+	j MAIN_LOOP
 	
 	
 
@@ -173,43 +187,57 @@ MAINLOOP: #main loop for game
 
 UP:
 	sw $zero 4($t9)
-	beq $s1 1 MAINLOOP
+	beq $s1 1 AFTER_KEY_PRESS
 	li $s1 1
-	#jal CLEAR_BUNNY
-	j MAINLOOP
+	j AFTER_KEY_PRESS
 DOWN:
 	sw $zero 4($t9)
-	addi $s0, $s0, 512
+	addi $s4, $s4, 512
 	#check if bunny is in boundaries
 	li $t8, BUNNY_MIN_HEIGHT
 	addi $t8, $t8, BASE_ADDRESS
-	bgt $s0, $t8, SUB_DOWN
+	bgt $s4, $t8, SUB_DOWN
 	j SKIP_SUB_DOWN
-	SUB_DOWN: subi $s0, $s0, 512
+	SUB_DOWN: subi $s4, $s4, 512
 	SKIP_SUB_DOWN:
 	
-	j MAINLOOP
+	j AFTER_KEY_PRESS
 
 LEFT:
-	#j CLEAR_SCREEN
+	jal CLEAR_BUNNY
 	sw $zero 4($t9)
-	subi $s0, $s0, 4
+	subi $s4, $s4, 4
 	li $s2 1
-	
-	j MAINLOOP
+	j DRAW_BUNNY
+	j AFTER_KEY_PRESS
 RIGHT:
-	#j CLEAR_SCREEN
+	jal CLEAR_BUNNY
 	sw $zero 4($t9)
-	addi $s0, $s0, 4
+	addi $s4, $s4, 4
 	li $s2 0
-	#check if bunny is in boundaries
-	j MAINLOOP
+	j DRAW_BUNNY
+	j AFTER_KEY_PRESS
 
 
+BUNNY_STATE:
+	
 
 DRAW_BUNNY:
+	#jal VALID_DRAW_BUNNY
+	
+	add $s0 $s0 $s4
 	beq $s2 1 DRAW_BUNNY_LEFT
 	j DRAW_BUNNY_RIGHT
+	
+VALID_DRAW_BUNNY:
+	li $t8, BUNNY_MIN_HEIGHT
+	addi $t8, $t8, BASE_ADDRESS
+	add $t9 $s0 $s4 
+	bgt $t9, $t8, MAIN_LOOP
+	
+	jr $ra
+	
+	
 	
 #draw bunny facing left
 #start from bottom right, to left
@@ -371,7 +399,7 @@ DRAW_BUNNY_LEFT:
 	sw $t1, -40($t3) 
 
 	
-	j MAINLOOP
+	j MAIN_LOOP
 
 DRAW_BUNNY_RIGHT:
 	li $t1, 0x000000 # $t1 stores the black colour code
@@ -528,29 +556,38 @@ DRAW_BUNNY_RIGHT:
 	sw $t1, -12($t3) 
 	sw $t1, -20($t3) 
 	
-	j MAINLOOP
+	j MAIN_LOOP
 	
 CLEAR_BUNNY:
 	li $t1, 0x000000 # $t1 stores the black colour code
 	move $t3, $s0
+	
 	li $t8 0
-	li $t7 0
 	CLEAR_BUNNY_LOOP:
-	beq $t7 14 CLEAR_ROW
-	j SKIP_CLEAR_ROW
-	CLEAR_ROW:
-	li $t7 0
-	subi $t3 $t3 512
-	SKIP_CLEAR_ROW:
-	addi $t7 $t7 1
+	sw $t1, 0($t3) 
+	sw $t1, -4($t3) 
+	sw $t1, -8($t3) 
+	sw $t1, -12($t3) 
+	sw $t1, -16($t3) 
+	sw $t1, -20($t3) 
+	sw $t1, -24($t3) 
+	sw $t1, -28($t3) 
+	sw $t1, -32($t3) 
+	sw $t1, -36($t3) 
+	sw $t1, -40($t3) 
+	sw $t1, -44($t3) 
+	sw $t1, -48($t3) 
+	sw $t1, -52($t3) 
+	subi $t3, $t3, 512
 	addi $t8 $t8 1
-	sw $t1 0($t3)
-	subi $t3 $t3 4
-	
-	
-	blt $t8 182 CLEAR_BUNNY_LOOP
+	blt $t8 13 CLEAR_BUNNY_LOOP
 	
 	jr $ra
+	
+	
+DRAW_START_MENU:
+	li $t2, 0xffffff # $t2 stores the white colour code
+	
 EXIT:
 	#exit
 	li $v0, 10
