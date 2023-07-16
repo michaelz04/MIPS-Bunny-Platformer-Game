@@ -50,11 +50,13 @@
 .eqv	BUNNY_MAX_HEIGHT	7220  #14 * 512 + 13*4
 .eqv	BUNNY_MIN_HEIGHT	31744  #62 * 512
 
-.eqv 	OFFSET_BOTTOM_LEFT	-56    # $s0 + OFFSET_BOTTOM_LEFT is bottom left pixel address of sprite
-.eqv 	OFFSET_TOP_LEFT		-6712  # $s0 + OFFSET_TOP_LEFT is top left pixel address of sprite
-.eqv 	OFFSET_TOP_RIGHT	-6656  # $s0 + OFFSET_TOP_RIGHT is top right pixel address of sprite
+.eqv 	OFFSET_BOTTOM_LEFT	56    # $s0 - OFFSET_BOTTOM_LEFT is bottom left pixel address of sprite
+.eqv 	OFFSET_TOP_LEFT		6712  # $s0 - OFFSET_TOP_LEFT is top left pixel address of sprite
+.eqv 	OFFSET_TOP_RIGHT	6656  # $s0 - OFFSET_TOP_RIGHT is top right pixel address of sprite
 
-
+.eqv	RED	0xff0000
+.eqv	WHITE	0xffffff
+.eqv	BLACK	0x000000
 .text
 
 # IMPORTANT $S REGISTERS:
@@ -64,18 +66,19 @@
 # $s3: jumping frame counter
 # $s4: tracks net sprite position change
 # $s5
-# $s6
+# $s6: keeps track of double jump (1 if double jump allowed, 0 otherwise)
 # $s7: tracks if sprite is in the air = 1, ie not standing on platform
 
 main:
 	#initialize $s registers
 	li $s0, BASE_ADDRESS
-	addi $s0, $s0, BUNNY_MAX_HEIGHT	#################   $s0 stores bottom left pixel address of sprite
+	addi $s0, $s0, 30000	#################   $s0 stores bottom left pixel address of sprite
 	
 	li $s1, 0
 	li $s2, 0
 	li $s3, 0
-	li $s7, 0
+	li $s7, 1
+	li $s6, 1
 	
 	jal CLEAR_SCREEN
 	li $t4 1 #t4 stores if arrow is on start (1) or on exit (0)
@@ -121,8 +124,7 @@ END_START_MENU:
 	mflo $t8
 	add $t8 $t0 $t8
 	
-	li $t1, 0xff0000 # $t1 stores the green colour code
-	li $t2, 0xffffff # $t2 stores the white colour code
+	li $t1, RED 
 	
 	li $t9, 0
 	BOTTOM_PLATFORM_LOOP:	
@@ -133,8 +135,39 @@ END_START_MENU:
 	j BOTTOM_PLATFORM_LOOP
 	BOTTOM_DRAWN:	
 	
+	li $t9 0
+	li $t8 10240
+	addi $t8 $t8 BASE_ADDRESS
 	
-
+	TOP_LEFT_PLATFORM_LOOP:	
+	sw $t1, 0($t8) 
+	addi $t9, $t9, 1
+	addi $t8, $t8, 4
+	beq $t9, 30, TOP_LEFT_DRAWN
+	j TOP_LEFT_PLATFORM_LOOP
+	TOP_LEFT_DRAWN:	
+	
+	li $t9 0
+	li $t8 0
+	addi $t8 $t8 BASE_ADDRESS
+	LEFT_BORDER_LOOP:
+	sw $t1, 0($t8) 
+	addi $t9, $t9, 1
+	addi $t8, $t8, 512
+	beq $t9, 126, LEFT_BORDER_DRAWN
+	j LEFT_BORDER_LOOP
+	LEFT_BORDER_DRAWN:	
+	
+	li $t9 0
+	li $t8 508
+	addi $t8 $t8 BASE_ADDRESS
+	RIGHT_BORDER_LOOP:
+	sw $t1, 0($t8) 
+	addi $t9, $t9, 1
+	addi $t8, $t8, 512
+	beq $t9, 126, RIGHT_BORDER_DRAWN
+	j RIGHT_BORDER_LOOP
+	RIGHT_BORDER_DRAWN:	
 
 MAIN_LOOP: #main loop for game 
 	
@@ -154,12 +187,43 @@ MAIN_LOOP: #main loop for game
 	#check for collisions
 	
 	#check if on ground for now
+	#check bottom right pixel
+	move $t1 $s0
+	addi $t1 $t1 512
+	lw $t1 4($t1)
+	beq $t1 RED ON_GROUND
+	#check bottom left pixel
+	move $t1 $s0
+	addi $t1 $t1 512
+	subi $t1 $t1 OFFSET_BOTTOM_LEFT
+	lw $t1 4($t1)
+	beq $t1 RED ON_GROUND
+	#set to in air
+	li $s7 1
+	j SKIP_ON_GROUND
+	ON_GROUND:
+	li $s7 0
+	li $s6 1
 	
-	
+	SKIP_ON_GROUND:
 	#if jumping
 	beq $s1 1 JUMPING
 	j SKIP_JUMPING
 	JUMPING:
+	#check if above is platform
+	move $t1 $s0
+	subi $t1 $t1 512
+	subi $t1 $t1 OFFSET_TOP_LEFT
+	lw $t1 4($t1)
+	beq $t1 RED RESET_JUMP
+	#check bottom left pixel
+	move $t1 $s0
+	subi $t1 $t1 512
+	subi $t1 $t1 OFFSET_TOP_RIGHT
+	lw $t1 4($t1)
+	beq $t1 RED RESET_JUMP
+	#above not platform
+	
 	subi $s4, $s4, 512
 	li $v0, 32
 	li $a0, 30
@@ -169,8 +233,8 @@ MAIN_LOOP: #main loop for game
 	j SKIP_RESET_JUMP
 
 	RESET_JUMP:
-	li $s1 0
 	li $s3 0
+	li $s1 0
 	
 	SKIP_RESET_JUMP:	
 	addi $s3 $s3 1
@@ -178,9 +242,7 @@ MAIN_LOOP: #main loop for game
 	
 	SKIP_JUMPING:
 	#gravity
-	li $t8, BUNNY_MIN_HEIGHT
-	addi $t8, $t8, BASE_ADDRESS
-	blt $s0, $t8, FALLING
+	beq $s7 1 FALLING
 	j SKIP_FALLING
 	FALLING:
 	addi $s0, $s0, 512	
@@ -209,25 +271,50 @@ MAIN_LOOP: #main loop for game
 
 UP:
 	sw $zero 4($t9)
-	beq $s1 1 AFTER_KEY_PRESS
-	li $s1 1
+	beq $s7 0 ENABLE_DOUBLE_JUMP
+	beq $s6 1 ENABLE_DOUBLE_JUMP
 	j AFTER_KEY_PRESS
-DOWN:
-	sw $zero 4($t9)
-	addi $s4, $s4, 512
-	#check if bunny is in boundaries
-	li $t8, BUNNY_MIN_HEIGHT
-	addi $t8, $t8, BASE_ADDRESS
-	bgt $s4, $t8, SUB_DOWN
-	j SKIP_SUB_DOWN
-	SUB_DOWN: subi $s4, $s4, 512
-	SKIP_SUB_DOWN:
+	
+	ENABLE_DOUBLE_JUMP:
+	li $s1 1
+	li $s6 0
+	li $s3 0
 	
 	j AFTER_KEY_PRESS
+	
+	
+DOWN:
+	jal CLEAR_BUNNY
+	sw $zero 4($t9)
+	
+	#check bottom right pixel
+	move $t1 $s0
+	addi $t1 $t1 512
+	lw $t1 4($t1)
+	beq $t1 RED AFTER_KEY_PRESS
+	#check bottom left pixel
+	move $t1 $s0
+	addi $t1 $t1 512
+	subi $t1 $t1 OFFSET_BOTTOM_LEFT
+	lw $t1 4($t1)
+	beq $t1 RED AFTER_KEY_PRESS
+	#if in air
+	addi $s4, $s4, 512
+	j DRAW_BUNNY
+
+	j AFTER_KEY_PRESS
+	
 
 LEFT:
 	jal CLEAR_BUNNY
 	sw $zero 4($t9)
+	#check bottom left pixel
+	move $t1 $s0
+	subi $t1 $t1 4
+	subi $t1 $t1 OFFSET_BOTTOM_LEFT
+	lw $t1 4($t1)
+	beq $t1 RED AFTER_KEY_PRESS
+	#if not touching wall
 	subi $s4, $s4, 4
 	li $s2 1
 	j DRAW_BUNNY
@@ -235,38 +322,29 @@ LEFT:
 RIGHT:
 	jal CLEAR_BUNNY
 	sw $zero 4($t9)
+	
+	#check bottom right pixel
+	move $t1 $s0
+	addi $t1 $t1 4
+	lw $t1 4($t1)
+	beq $t1 RED AFTER_KEY_PRESS
 	addi $s4, $s4, 4
 	li $s2 0
 	j DRAW_BUNNY
 	j AFTER_KEY_PRESS
 
-
-BUNNY_STATE:
-	
-
 DRAW_BUNNY:
-	#jal VALID_DRAW_BUNNY
 	
 	add $s0 $s0 $s4
 	beq $s2 1 DRAW_BUNNY_LEFT
 	j DRAW_BUNNY_RIGHT
 	
-VALID_DRAW_BUNNY:
-	li $t8, BUNNY_MIN_HEIGHT
-	addi $t8, $t8, BASE_ADDRESS
-	add $t9 $s0 $s4 
-	bgt $t9, $t8, MAIN_LOOP
-	
-	jr $ra
-	
-	
-	
 #draw bunny facing left
 #start from bottom right, to left
 #$s0 will contain the bottom right corner address of bunny sprite
 DRAW_BUNNY_LEFT:	
-	li $t1, 0x000000 # $t1 stores the black colour code
-	li $t2, 0xffffff # $t2 stores the white colour code
+	li $t1, BLACK # $t1 stores the black colour code
+	li $t2, WHITE # $t2 stores the white colour code
 	move $t3, $s0
 	#row 1
 	sw $t1, -4($t3) 
@@ -424,8 +502,8 @@ DRAW_BUNNY_LEFT:
 	j MAIN_LOOP
 
 DRAW_BUNNY_RIGHT:
-	li $t1, 0x000000 # $t1 stores the black colour code
-	li $t2, 0xffffff # $t2 stores the white colour code
+	li $t1, BLACK # $t1 stores the black colour code
+	li $t2, WHITE # $t2 stores the white colour code
 	move $t3, $s0
 	#row 1
 	sw $t1, -8($t3) 
@@ -608,7 +686,7 @@ CLEAR_BUNNY:
 	
 	
 DRAW_START_MENU:
-	li $t2, 0xffffff # $t2 stores the white colour code
+	li $t2, WHITE # $t2 stores the white colour code
 	li $t0, BASE_ADDRESS
 	
 	#draw START
@@ -794,7 +872,7 @@ DRAW_START_MENU:
 	jr $ra
 	
 DRAW_ARROW:
-	li $t2, 0xffffff # $t2 stores the white colour code
+	li $t2, WHITE # $t2 stores the white colour code
 	li $t0, BASE_ADDRESS
 	
 	beq $t4 1 DRAW_ON_START
