@@ -76,20 +76,42 @@ main:
 	li $s2, 0
 	li $s3, 0
 	li $s7, 0
-
-CLEAR_SCREEN:
-	#clear screen
-	li $t9, BASE_ADDRESS
-	addi $t9 $t9 131072
-	li $t1, 0x000000 #load black colour
-	li $t8, BASE_ADDRESS
-CLEAR_SCREEN_LOOP:
-	sw $t1, 0($t8) 
-	bgt $t8 $t9 CLEAR_DONE	
-	addi $t8 $t8 4
-	j CLEAR_SCREEN_LOOP
-CLEAR_DONE:
 	
+	jal CLEAR_SCREEN
+	li $t4 1 #t4 stores if arrow is on start (1) or on exit (0)
+START_MENU_LOOP:
+
+	#check keyboard input
+	li $t9, 0xffff0000
+	lw $t8, 4($t9)
+	beq $t8, 0x70, EXIT #if key = p, exit
+	beq $t8, 0x77, GO_TO_START #if key = w, go up
+	beq $t8, 0x73, GO_TO_EXIT #if key = s, go down
+	beq $t8, 0x20, SELECT_OPTION #if key = space, go select option
+	j SKIP_SELECT_OPTION
+	SELECT_OPTION:
+	beq $t4 1 END_START_MENU
+	beq $t4 0 EXIT
+	
+	GO_TO_START:
+	li $t4 1
+	j SKIP_EXIT
+	GO_TO_EXIT:
+	li $t4 0
+	SKIP_EXIT:
+	SKIP_SELECT_OPTION:
+	
+	jal DRAW_START_MENU
+	jal DRAW_ARROW
+	jal CLEAR_ARROW
+	
+	j START_MENU_LOOP
+	
+END_START_MENU:	
+
+
+	
+	jal CLEAR_SCREEN
 	#draw bottom platform
 
 	li $t8, DISPLAY_WIDTH
@@ -124,8 +146,8 @@ MAIN_LOOP: #main loop for game
 	beq $t8, 0x70, EXIT #if key = p, exit
 	beq $t8, 0x77, UP #if key = w, go up
 	beq $t8, 0x73, DOWN #if key = s, go down
-	beq $t8, 0x61, LEFT #if key = w, go up
-	beq $t8, 0x64, RIGHT #if key = s, go down
+	beq $t8, 0x61, LEFT #if key = a, go left
+	beq $t8, 0x64, RIGHT #if key = d, go right
 	
 	AFTER_KEY_PRESS:
 	
@@ -587,8 +609,279 @@ CLEAR_BUNNY:
 	
 DRAW_START_MENU:
 	li $t2, 0xffffff # $t2 stores the white colour code
+	li $t0, BASE_ADDRESS
+	
+	#draw START
+	addi $t0 $t0 10436 #t0 holds top left pixel address of START
+	#row 1
+	#sw $t2, 0($t0) 
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	#sw $t2, 16($t0) 
+	#sw $t2, 20($t0) 
+	sw $t2, 24($t0) 
+	sw $t2, 28($t0) 
+	sw $t2, 32($t0) 
+	sw $t2, 36($t0) 
+	sw $t2, 40($t0) 
+	#sw $t2, 44($t0) 
+	#sw $t2, 48($t0) 
+	sw $t2, 52($t0) 
+	#sw $t2, 56($t0) 
+	#sw $t2, 60($t0) 
+	#sw $t2, 64($t0) 
+	sw $t2, 68($t0) 
+	sw $t2, 72($t0) 
+	sw $t2, 76($t0) 
+	sw $t2, 80($t0) 
+	#sw $t2, 84($t0) 
+	#sw $t2, 88($t0) 
+	sw $t2, 92($t0) 
+	sw $t2, 96($t0) 
+	sw $t2, 100($t0) 
+	sw $t2, 104($t0) 
+	sw $t2, 108($t0) 
+	
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	sw $t2, 32($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 56($t0) 
+	sw $t2, 68($t0) 
+	sw $t2, 84($t0) 
+	sw $t2, 100($t0) 
+	
+	addi $t0, $t0, 512
+	#row 3
+	sw $t2, 0($t0) 
+	sw $t2, 32($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 56($t0) 
+	sw $t2, 68($t0) 
+	sw $t2, 84($t0) 
+	sw $t2, 100($t0) 
+	
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	sw $t2, 32($t0) 
+	sw $t2, 44($t0) 
+	sw $t2, 60($t0) 
+	sw $t2, 68($t0) 
+	sw $t2, 72($t0) 
+	sw $t2, 76($t0) 
+	sw $t2, 80($t0) 
+	sw $t2, 100($t0) 
+	
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 16($t0) 
+	sw $t2, 32($t0) 
+	sw $t2, 44($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 52($t0) 
+	sw $t2, 56($t0) 
+	sw $t2, 60($t0) 
+	sw $t2, 68($t0) 
+	sw $t2, 76($t0) 
+	sw $t2, 100($t0) 
+
+	addi $t0, $t0, 512
+	#row 6
+	sw $t2, 0($t0)  
+	sw $t2, 16($t0) 
+	sw $t2, 32($t0) 
+	sw $t2, 44($t0) 
+	sw $t2, 60($t0) 
+	sw $t2, 68($t0) 
+	sw $t2, 80($t0) 
+	sw $t2, 100($t0) 
+	
+	addi $t0, $t0, 512
+	#row 7
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	sw $t2, 32($t0) 
+	sw $t2, 44($t0) 
+	sw $t2, 60($t0) 
+	sw $t2, 68($t0) 
+	sw $t2, 84($t0) 
+	sw $t2, 100($t0)
+	
+	#draw EXIT
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 23236 #t0 holds top left pixel address of EXIT
+
+	#row 1
+	sw $t2, 0($t0) 
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	sw $t2, 16($t0) 
+	sw $t2, 24($t0) 
+	sw $t2, 40($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 52($t0) 
+	sw $t2, 56($t0) 
+	sw $t2, 64($t0) 
+	sw $t2, 68($t0) 
+	sw $t2, 72($t0) 
+	sw $t2, 76($t0) 
+	sw $t2, 80($t0)
+	
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 0($t0) 
+	sw $t2, 24($t0) 
+	sw $t2, 40($t0) 
+	sw $t2, 52($t0) 
+	sw $t2, 72($t0) 
+	
+	addi $t0, $t0, 512
+	#row 3
+	sw $t2, 0($t0) 
+	sw $t2, 28($t0) 
+	sw $t2, 36($t0) 
+	sw $t2, 52($t0) 
+	sw $t2, 72($t0) 
+	
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 0($t0) 
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 32($t0) 
+	sw $t2, 52($t0) 
+	sw $t2, 72($t0) 
+	
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 0($t0) 
+	sw $t2, 28($t0) 
+	sw $t2, 36($t0) 
+	sw $t2, 52($t0) 
+	sw $t2, 72($t0) 
+	
+	addi $t0, $t0, 512
+	#row 6
+	sw $t2, 0($t0) 
+	sw $t2, 24($t0) 
+	sw $t2, 40($t0) 
+	sw $t2, 52($t0) 
+	sw $t2, 72($t0) 
+	
+	
+	addi $t0, $t0, 512
+	#row 7
+	sw $t2, 0($t0) 
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	sw $t2, 16($t0) 
+	sw $t2, 24($t0) 
+	sw $t2, 40($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 52($t0) 
+	sw $t2, 56($t0) 
+	sw $t2, 72($t0) 
+	
+	jr $ra
+	
+DRAW_ARROW:
+	li $t2, 0xffffff # $t2 stores the white colour code
+	li $t0, BASE_ADDRESS
+	
+	beq $t4 1 DRAW_ON_START
+	addi $t0 $t0 23848
+	j DRAW_ON_EXIT
+	
+	DRAW_ON_START:
+	addi $t0 $t0 11076
+	
+	DRAW_ON_EXIT:
+	
+	#row 1
+	sw $t2, 8($t0) 
+	
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 4($t0) 
+	
+	addi $t0, $t0, 512
+	#row 3
+	sw $t2, 0($t0) 
+	
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 4($t0) 
+	
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 8($t0) 
+	
+	addi $t0, $t0, 512
+	
+	jr $ra
+	
+CLEAR_ARROW:
+	li $t2, 0x000000 # $t2 stores the black colour code
+	li $t0, BASE_ADDRESS
+	
+	beq $t4 0 DRAW_ON_START_CLEAR
+	addi $t0 $t0 23848
+	j DRAW_ON_EXIT_CLEAR
+	
+	DRAW_ON_START_CLEAR:
+	addi $t0 $t0 11076
+	
+	DRAW_ON_EXIT_CLEAR:
+	
+	#row 1
+	sw $t2, 8($t0) 
+	
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 4($t0) 
+	
+	addi $t0, $t0, 512
+	#row 3
+	sw $t2, 0($t0) 
+	
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 4($t0) 
+	
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 8($t0) 
+	
+	addi $t0, $t0, 512
+	
+	jr $ra
+
+CLEAR_SCREEN:
+	#clear screen
+	li $t9, BASE_ADDRESS
+	addi $t9 $t9 131072
+	li $t1, 0x000000 #load black colour
+	li $t8, BASE_ADDRESS
+	CLEAR_SCREEN_LOOP:
+	sw $t1, 0($t8) 
+	bgt $t8 $t9 CLEAR_DONE	
+	addi $t8 $t8 4
+	j CLEAR_SCREEN_LOOP
+	CLEAR_DONE:
+	jr $ra
 	
 EXIT:
+	jal CLEAR_SCREEN
 	#exit
 	li $v0, 10
 	syscall
+
