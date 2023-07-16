@@ -306,7 +306,7 @@ DOWN:
 	
 
 LEFT:
-	jal CLEAR_BUNNY
+	
 	sw $zero 4($t9)
 	#check bottom left pixel
 	move $t1 $s0
@@ -315,12 +315,13 @@ LEFT:
 	lw $t1 4($t1)
 	beq $t1 RED AFTER_KEY_PRESS
 	#if not touching wall
+	jal CLEAR_BUNNY
 	subi $s4, $s4, 4
 	li $s2 1
 	j DRAW_BUNNY
 	j AFTER_KEY_PRESS
 RIGHT:
-	jal CLEAR_BUNNY
+	
 	sw $zero 4($t9)
 	
 	#check bottom right pixel
@@ -328,6 +329,8 @@ RIGHT:
 	addi $t1 $t1 4
 	lw $t1 4($t1)
 	beq $t1 RED AFTER_KEY_PRESS
+	#if not touching wall
+	jal CLEAR_BUNNY
 	addi $s4, $s4, 4
 	li $s2 0
 	j DRAW_BUNNY
