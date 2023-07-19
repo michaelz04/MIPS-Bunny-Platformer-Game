@@ -8,7 +8,7 @@
 # Bitmap Display Configuration:
 # - Unit width in pixels: 4 (update this as needed)
 # - Unit height in pixels: 4 (update this as needed)
-# - Display width in pixels: 256 (update this as needed)
+# - Display width in pixels: 512 (update this as needed)
 # - Display height in pixels: 256 (update this as needed)
 # - Base Address for Display: 0x10008000 ($gp)
 #
@@ -51,8 +51,8 @@
 .eqv	BUNNY_MIN_HEIGHT	31744  #62 * 512
 
 .eqv 	OFFSET_BOTTOM_LEFT	56    # $s0 - OFFSET_BOTTOM_LEFT is bottom left pixel address of sprite
-.eqv 	OFFSET_TOP_LEFT		6712  # $s0 - OFFSET_TOP_LEFT is top left pixel address of sprite
-.eqv 	OFFSET_TOP_RIGHT	6656  # $s0 - OFFSET_TOP_RIGHT is top right pixel address of sprite
+.eqv 	OFFSET_TOP_LEFT		6200  # $s0 - OFFSET_TOP_LEFT is top left pixel address of sprite
+.eqv 	OFFSET_TOP_RIGHT	6144  # $s0 - OFFSET_TOP_RIGHT is top right pixel address of sprite
 
 .eqv	RED	0xff0000
 .eqv	WHITE	0xffffff
@@ -70,6 +70,7 @@
 # $s7: tracks if sprite is in the air = 1, ie not standing on platform
 
 main:
+	START_MAIN:
 	#initialize $s registers
 	li $s0, BASE_ADDRESS
 	addi $s0, $s0, 30000	#################   $s0 stores bottom left pixel address of sprite
@@ -79,6 +80,9 @@ main:
 	li $s3, 0
 	li $s7, 1
 	li $s6, 1
+	
+	li $t9, 0xffff0000
+	sw $zero 4($t9) #reset keyboard input
 	
 	jal CLEAR_SCREEN
 	li $t4 1 #t4 stores if arrow is on start (1) or on exit (0)
@@ -135,6 +139,8 @@ END_START_MENU:
 	j BOTTOM_PLATFORM_LOOP
 	BOTTOM_DRAWN:	
 	
+	
+	#draw platforms
 	li $t9 0
 	li $t8 10240
 	addi $t8 $t8 BASE_ADDRESS
@@ -147,6 +153,43 @@ END_START_MENU:
 	j TOP_LEFT_PLATFORM_LOOP
 	TOP_LEFT_DRAWN:	
 	
+	li $t9 0
+	li $t8 20480
+	addi $t8 $t8 BASE_ADDRESS
+	
+	MIDDLE_LEFT_PLATFORM_LOOP:	
+	sw $t1, 0($t8) 
+	addi $t9, $t9, 1
+	addi $t8, $t8, 4
+	beq $t9, 15, MIDDLE_LEFT_DRAWN
+	j MIDDLE_LEFT_PLATFORM_LOOP
+	MIDDLE_LEFT_DRAWN:	
+	
+	li $t9 0
+	li $t8 24424
+	addi $t8 $t8 BASE_ADDRESS
+	
+	BOTTOM_RIGHT_PLATFORM_LOOP:	
+	sw $t1, 0($t8) 
+	addi $t9, $t9, 1
+	addi $t8, $t8, 4
+	beq $t9, 30, BOTTOM_RIGHT_DRAWN
+	j BOTTOM_RIGHT_PLATFORM_LOOP
+	BOTTOM_RIGHT_DRAWN:
+	
+	li $t9 0
+	li $t8 14024
+	addi $t8 $t8 BASE_ADDRESS
+	
+	BOTTOM_MIDDLE_PLATFORM_LOOP:	
+	sw $t1, 0($t8) 
+	addi $t9, $t9, 1
+	addi $t8, $t8, 4
+	beq $t9, 20, BOTTOM_MIDDLE_DRAWN
+	j BOTTOM_MIDDLE_PLATFORM_LOOP
+	BOTTOM_MIDDLE_DRAWN:
+	
+	#draw borders
 	li $t9 0
 	li $t8 0
 	addi $t8 $t8 BASE_ADDRESS
@@ -173,16 +216,7 @@ MAIN_LOOP: #main loop for game
 	
 	li $s4 0 #load net position change
 	
-	#check keyboard input
-	li $t9, 0xffff0000
-	lw $t8, 4($t9)
-	beq $t8, 0x70, EXIT #if key = p, exit
-	beq $t8, 0x77, UP #if key = w, go up
-	beq $t8, 0x73, DOWN #if key = s, go down
-	beq $t8, 0x61, LEFT #if key = a, go left
-	beq $t8, 0x64, RIGHT #if key = d, go right
 	
-	AFTER_KEY_PRESS:
 	
 	#check for collisions
 	
@@ -223,8 +257,8 @@ MAIN_LOOP: #main loop for game
 	lw $t1 4($t1)
 	beq $t1 RED RESET_JUMP
 	#above not platform
-	
-	subi $s4, $s4, 512
+	subi $s0, $s0, 512
+	#jump delay
 	li $v0, 32
 	li $a0, 30
 	syscall	
@@ -245,6 +279,7 @@ MAIN_LOOP: #main loop for game
 	beq $s7 1 FALLING
 	j SKIP_FALLING
 	FALLING:
+	
 	addi $s0, $s0, 512	
 	li $v0, 32
 	li $a0, 30
@@ -253,6 +288,17 @@ MAIN_LOOP: #main loop for game
 	SKIP_FALLING:
 	
 	
+	
+	#check keyboard input
+	li $t9, 0xffff0000
+	lw $t8, 4($t9)
+	beq $t8, 0x70, START_MAIN #if key = p, exit
+	beq $t8, 0x77, UP #if key = w, go up
+	beq $t8, 0x73, DOWN #if key = s, go down
+	beq $t8, 0x61, LEFT #if key = a, go left
+	beq $t8, 0x64, RIGHT #if key = d, go right
+	
+	AFTER_KEY_PRESS:
 	
 	j DRAW_BUNNY
 	
@@ -308,12 +354,15 @@ DOWN:
 LEFT:
 	
 	sw $zero 4($t9)
+	
+
 	#check bottom left pixel
 	move $t1 $s0
 	subi $t1 $t1 4
 	subi $t1 $t1 OFFSET_BOTTOM_LEFT
 	lw $t1 4($t1)
 	beq $t1 RED AFTER_KEY_PRESS
+	
 	#if not touching wall
 	jal CLEAR_BUNNY
 	subi $s4, $s4, 4
@@ -338,7 +387,11 @@ RIGHT:
 
 DRAW_BUNNY:
 	
+	#if invalid draw, dont update position
+	jal DRAW_BUNNY_HITBOX
 	add $s0 $s0 $s4
+	INVALID_DRAW:
+	
 	beq $s2 1 DRAW_BUNNY_LEFT
 	j DRAW_BUNNY_RIGHT
 	
@@ -500,10 +553,181 @@ DRAW_BUNNY_LEFT:
 	#row 13
 	sw $t1, -32($t3) 
 	sw $t1, -40($t3) 
-
 	
 	j MAIN_LOOP
 
+DRAW_BUNNY_LEFT_RUNNING:	
+	li $t1, BLACK # $t1 stores the black colour code
+	li $t2, WHITE # $t2 stores the white colour code
+	move $t3, $s0
+	#row 1
+	sw $t1, 0($t3) 
+	sw $t1, -4($t3) 
+	sw $t1, -8($t3) 
+	sw $t1, -12($t3) 
+	sw $t1, -40($t3) 
+	sw $t1, -44($t3) 
+	sw $t1, -48($t3) 
+	
+	subi $t3, $t3, 512
+	#row 2
+	sw $t1, 0($t3) 
+	sw $t2, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t1, -16($t3) 
+	sw $t1, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t2, -44($t3) 
+	sw $t2, -48($t3) 
+	sw $t1, -52($t3) 
+	
+	subi $t3, $t3, 512
+	#row 3
+	sw $t1, -4($t3) 
+	sw $t1, -8($t3) 
+	sw $t2, -12($t3) 
+	
+	sw $t1, -16($t3) 
+	sw $t1, -20($t3) 
+	sw $t1, -24($t3) 
+	sw $t1, -28($t3) 
+	sw $t1, -32($t3)
+	sw $t2, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t2, -44($t3) 
+	sw $t1, -48($t3) 
+	
+	subi $t3, $t3, 512
+	#row 4
+	sw $t1, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t1, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t2, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t1, -44($t3) 
+	
+	subi $t3, $t3, 512
+	#row 5
+	sw $t1, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t2, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t1, -44($t3) 
+	sw $t1, -48($t3) 
+	
+	subi $t3, $t3, 512
+	#row 6
+	sw $t1, 0($t3) 
+	sw $t1, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t2, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t2, -44($t3) 
+	sw $t2, -48($t3)
+	sw $t1, -52($t3) 
+	
+	subi $t3, $t3, 512
+	#row 7
+	sw $t1, 0($t3) 
+	sw $t2, -4($t3) 
+	sw $t1, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t2, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t1, -40($t3) 
+	sw $t2, -44($t3) 
+	sw $t2, -48($t3) 
+	sw $t1, -52($t3) 
+	
+	subi $t3, $t3, 512
+	#row 8
+	sw $t1, 0($t3) 
+	sw $t1, -4($t3) 
+	sw $t1, -8($t3) 
+	sw $t1, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t2, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t1, -40($t3) 
+	sw $t2, -44($t3) 
+	sw $t2, -48($t3) 
+	sw $t1, -52($t3) 
+	
+	subi $t3, $t3, 512
+	#row 9 
+	sw $t1, -16($t3) 
+	sw $t1, -20($t3) 
+	sw $t1, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t2, -44($t3) 
+	sw $t2, -48($t3) 
+	sw $t1, -52($t3) 
+	
+	subi $t3, $t3, 512
+	#row 10
+	sw $t1, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t2, -44($t3) 
+	sw $t1, -48($t3)  
+	#row 11
+	sw $t1, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t1, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t1, -44($t3) 
+	
+	subi $t3, $t3, 512
+	#row 12
+	sw $t1, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t1, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t1, -44($t3) 
+	
+	subi $t3, $t3, 512
+	#row 13
+	sw $t1, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t1, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t1, -44($t3) 
+	
+	subi $t3, $t3, 512
+	#row 14
+	sw $t1, -32($t3) 
+	sw $t1, -40($t3) 
+	j DRAW_BUNNY_LEFT
+	
 DRAW_BUNNY_RIGHT:
 	li $t1, BLACK # $t1 stores the black colour code
 	li $t2, WHITE # $t2 stores the white colour code
@@ -687,7 +911,48 @@ CLEAR_BUNNY:
 	
 	jr $ra
 	
-	
+DRAW_BUNNY_HITBOX:
+
+	#t3 contains current pixel address after movement, starting from bottom right
+	move $t3, $s0
+	add $t3 $t3 $s4
+	li $t8 0
+	HITBOX_BUNNY_LOOP:
+	lw $t4 0($t3)
+	beq $t4 RED INVALID_DRAW
+#	lw $t4 -4($t3)
+#	beq $t4 RED INVALID_DRAW
+#	lw $t4 -8($t3)
+#	beq $t4 RED INVALID_DRAW
+#	lw $t4 -12($t3)
+#	beq $t4 RED INVALID_DRAW
+#	lw $t4 -16($t3)
+#	beq $t4 RED INVALID_DRAW
+#	lw $t4 -20($t3)
+#	beq $t4 RED INVALID_DRAW
+#	lw $t4 -24($t3)
+#	beq $t4 RED INVALID_DRAW
+#	lw $t4 -28($t3)
+#	beq $t4 RED INVALID_DRAW
+#	lw $t4 -32($t3)
+#	beq $t4 RED INVALID_DRAW
+#	lw $t4 -36($t3)
+#	beq $t4 RED INVALID_DRAW
+#	lw $t4 -40($t3)
+#	beq $t4 RED INVALID_DRAW
+#	lw $t4 -44($t3)
+#	beq $t4 RED INVALID_DRAW
+#	lw $t4 -48($t3)
+#	beq $t4 RED INVALID_DRAW
+#	lw $t4 -52($t3)
+#	beq $t4 RED INVALID_DRAW
+	lw $t4 -56($t3)
+	beq $t4 RED INVALID_DRAW
+	subi $t3, $t3, 512
+	addi $t8 $t8 1
+	blt $t8 13 HITBOX_BUNNY_LOOP
+
+	jr $ra
 DRAW_START_MENU:
 	li $t2, WHITE # $t2 stores the white colour code
 	li $t0, BASE_ADDRESS
@@ -695,29 +960,19 @@ DRAW_START_MENU:
 	#draw START
 	addi $t0 $t0 10436 #t0 holds top left pixel address of START
 	#row 1
-	#sw $t2, 0($t0) 
 	sw $t2, 4($t0) 
 	sw $t2, 8($t0) 
 	sw $t2, 12($t0) 
-	#sw $t2, 16($t0) 
-	#sw $t2, 20($t0) 
 	sw $t2, 24($t0) 
 	sw $t2, 28($t0) 
 	sw $t2, 32($t0) 
 	sw $t2, 36($t0) 
 	sw $t2, 40($t0) 
-	#sw $t2, 44($t0) 
-	#sw $t2, 48($t0) 
 	sw $t2, 52($t0) 
-	#sw $t2, 56($t0) 
-	#sw $t2, 60($t0) 
-	#sw $t2, 64($t0) 
 	sw $t2, 68($t0) 
 	sw $t2, 72($t0) 
 	sw $t2, 76($t0) 
 	sw $t2, 80($t0) 
-	#sw $t2, 84($t0) 
-	#sw $t2, 88($t0) 
 	sw $t2, 92($t0) 
 	sw $t2, 96($t0) 
 	sw $t2, 100($t0) 
