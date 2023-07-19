@@ -14,7 +14,7 @@
 #
 # Which milestones have been reached in this submission?
 # (See the assignment handout for descriptions of the milestones)
-# - Milestone 1/2/3 (choose the one the applies)
+# - Milestone 3 (choose the one the applies)
 #
 # Which approved features have been implemented for milestone 3?
 # (See the assignment handout for the list of additional features)
@@ -59,13 +59,13 @@
 .eqv	BLACK	0x000000
 .text
 
-# IMPORTANT $S REGISTERS:
+# IMPORTANT $s REGISTERS:
 # $s0: bottom right pixel address of sprite
 # $s1: if sprite jumping = 1, otherwise 0
 # $s2: if sprite facing left = 1, otherwise 0
 # $s3: jumping frame counter
 # $s4: tracks net sprite position change
-# $s5
+# $s5:
 # $s6: keeps track of double jump (1 if double jump allowed, 0 otherwise)
 # $s7: tracks if sprite is in the air = 1, ie not standing on platform
 
@@ -216,10 +216,16 @@ MAIN_LOOP: #main loop for game
 	
 	li $s4 0 #load net position change
 	
-	
+	#check keyboard input
+	li $t9, 0xffff0000
+	lw $t8, 4($t9)
+	beq $t8, 0x70, START_MAIN #if key = p, exit
+	beq $t8, 0x77, UP #if key = w, go up
+	beq $t8, 0x73, DOWN #if key = s, go down
+	beq $t8, 0x61, LEFT #if key = a, go left
+	beq $t8, 0x64, RIGHT #if key = d, go right
 	
 	#check for collisions
-	
 	#check if on ground for now
 	#check bottom right pixel
 	move $t1 $s0
@@ -289,16 +295,11 @@ MAIN_LOOP: #main loop for game
 	
 	
 	
-	#check keyboard input
-	li $t9, 0xffff0000
-	lw $t8, 4($t9)
-	beq $t8, 0x70, START_MAIN #if key = p, exit
-	beq $t8, 0x77, UP #if key = w, go up
-	beq $t8, 0x73, DOWN #if key = s, go down
-	beq $t8, 0x61, LEFT #if key = a, go left
-	beq $t8, 0x64, RIGHT #if key = d, go right
+	
 	
 	AFTER_KEY_PRESS:
+
+	
 	
 	j DRAW_BUNNY
 	
@@ -312,8 +313,6 @@ MAIN_LOOP: #main loop for game
 	j MAIN_LOOP
 	
 	
-
-
 
 UP:
 	sw $zero 4($t9)
@@ -363,7 +362,7 @@ LEFT:
 	lw $t1 4($t1)
 	beq $t1 RED AFTER_KEY_PRESS
 	
-	#if not touching wall
+	#if not touching border wall
 	jal CLEAR_BUNNY
 	subi $s4, $s4, 4
 	li $s2 1
@@ -378,7 +377,7 @@ RIGHT:
 	addi $t1 $t1 4
 	lw $t1 4($t1)
 	beq $t1 RED AFTER_KEY_PRESS
-	#if not touching wall
+	#if not touching border wall
 	jal CLEAR_BUNNY
 	addi $s4, $s4, 4
 	li $s2 0
@@ -392,13 +391,14 @@ DRAW_BUNNY:
 	add $s0 $s0 $s4
 	INVALID_DRAW:
 	
+	DRAW_BUNNY_STANDING:
 	beq $s2 1 DRAW_BUNNY_LEFT
 	j DRAW_BUNNY_RIGHT
 	
 #draw bunny facing left
 #start from bottom right, to left
 #$s0 will contain the bottom right corner address of bunny sprite
-DRAW_BUNNY_LEFT:	
+DRAW_BUNNY_LEFT:
 	li $t1, BLACK # $t1 stores the black colour code
 	li $t2, WHITE # $t2 stores the white colour code
 	move $t3, $s0
@@ -556,7 +556,8 @@ DRAW_BUNNY_LEFT:
 	
 	j MAIN_LOOP
 
-DRAW_BUNNY_LEFT_RUNNING:	
+DRAW_BUNNY_LEFT_RUNNING:
+	jal CLEAR_BUNNY	
 	li $t1, BLACK # $t1 stores the black colour code
 	li $t2, WHITE # $t2 stores the white colour code
 	move $t3, $s0
@@ -726,6 +727,11 @@ DRAW_BUNNY_LEFT_RUNNING:
 	#row 14
 	sw $t1, -32($t3) 
 	sw $t1, -40($t3) 
+	
+	li $v0, 32
+	li $a0, 50
+	syscall
+	
 	j DRAW_BUNNY_LEFT
 	
 DRAW_BUNNY_RIGHT:
