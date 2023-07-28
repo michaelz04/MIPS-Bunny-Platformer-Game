@@ -57,6 +57,11 @@
 .eqv	RED	0xff0000
 .eqv	WHITE	0xffffff
 .eqv	BLACK	0x000000
+.eqv	GREEN	0x008000
+.eqv	ORANGE	0xFFA500
+
+.eqv	CARROT_1_START 		17972
+.eqv	CARROT_1_END 		19508
 .text
 
 # IMPORTANT $s REGISTERS:
@@ -301,9 +306,15 @@ MAIN_LOOP: #main loop for game
 
 	
 	
-	j DRAW_BUNNY
 	
+	
+	li $a0 CARROT_1_END
+	addi $a0 $a0 BASE_ADDRESS
+	jal DRAW_CARROT
 
+	
+	
+	j DRAW_BUNNY
 	
 	#sleep
 	li $v0, 32
@@ -926,32 +937,6 @@ DRAW_BUNNY_HITBOX:
 	HITBOX_BUNNY_LOOP:
 	lw $t4 0($t3)
 	beq $t4 RED INVALID_DRAW
-#	lw $t4 -4($t3)
-#	beq $t4 RED INVALID_DRAW
-#	lw $t4 -8($t3)
-#	beq $t4 RED INVALID_DRAW
-#	lw $t4 -12($t3)
-#	beq $t4 RED INVALID_DRAW
-#	lw $t4 -16($t3)
-#	beq $t4 RED INVALID_DRAW
-#	lw $t4 -20($t3)
-#	beq $t4 RED INVALID_DRAW
-#	lw $t4 -24($t3)
-#	beq $t4 RED INVALID_DRAW
-#	lw $t4 -28($t3)
-#	beq $t4 RED INVALID_DRAW
-#	lw $t4 -32($t3)
-#	beq $t4 RED INVALID_DRAW
-#	lw $t4 -36($t3)
-#	beq $t4 RED INVALID_DRAW
-#	lw $t4 -40($t3)
-#	beq $t4 RED INVALID_DRAW
-#	lw $t4 -44($t3)
-#	beq $t4 RED INVALID_DRAW
-#	lw $t4 -48($t3)
-#	beq $t4 RED INVALID_DRAW
-#	lw $t4 -52($t3)
-#	beq $t4 RED INVALID_DRAW
 	lw $t4 -56($t3)
 	beq $t4 RED INVALID_DRAW
 	subi $t3, $t3, 512
@@ -959,6 +944,74 @@ DRAW_BUNNY_HITBOX:
 	blt $t8 13 HITBOX_BUNNY_LOOP
 
 	jr $ra
+	
+DRAW_CARROT:
+	li $t1, ORANGE # $t1 stores the orange colour code
+	li $t2, GREEN # $t2 stores the green colour code
+	move $t3, $a0 # $t3 stores the bottom right pixel of carrot
+	#row 1
+	sw $t1, -24($t3) 
+	sw $t1, -28($t3) 		
+	subi $t3, $t3, 512
+	
+	#row 2 
+	sw $t1, -16($t3) 
+	sw $t1, -20($t3) 
+	sw $t1, -24($t3) 
+	sw $t1, -28($t3) 	
+	sw $t1, -32($t3) 	
+	subi $t3, $t3, 512
+	
+	#row 3 
+	sw $t1, -12($t3) 
+	sw $t1, -16($t3) 
+	sw $t1, -20($t3) 
+	sw $t1, -24($t3) 
+	sw $t1, -28($t3) 		
+	subi $t3, $t3, 512
+	
+	#row 4 
+	sw $t1, -8($t3) 
+	sw $t1, -12($t3) 
+	sw $t1, -16($t3) 
+	sw $t1, -20($t3) 
+	sw $t1, -24($t3) 	
+	subi $t3, $t3, 512
+	
+	#row 5
+	sw $t2, -4($t3) 
+	sw $t1, -8($t3) 
+	sw $t1, -12($t3) 
+	sw $t1, -16($t3) 
+	sw $t1, -20($t3) 
+	subi $t3, $t3, 512
+	
+	#row 6
+	sw $t2, 0($t3) 
+	sw $t2, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t1, -12($t3) 
+	sw $t1, -16($t3) 	
+	subi $t3, $t3, 512
+	
+	#row 7
+	sw $t2, 0($t3) 
+	sw $t2, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t2, -12($t3) 	
+	subi $t3, $t3, 512
+	
+	#row 8
+	sw $t2, -4($t3) 
+	sw $t2, -8($t3) 	
+	subi $t3, $t3, 512
+	
+	#row 9
+	sw $t2, -8($t3) 
+	subi $t3, $t3, 512
+	
+	jr $ra
+	
 DRAW_START_MENU:
 	li $t2, WHITE # $t2 stores the white colour code
 	li $t0, BASE_ADDRESS
