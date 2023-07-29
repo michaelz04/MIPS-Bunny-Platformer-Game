@@ -39,7 +39,7 @@
 .globl main
 
 .eqv 	BASE_ADDRESS 	0x10008000
-.eqv 	SLEEP_MS 	40
+.eqv 	SLEEP_MS 	30
 
 .eqv 	BORDER_HEIGHT	500
 .eqv	BORDER_WIDTH	500
@@ -70,7 +70,7 @@
 # $s2: if sprite facing left = 1, otherwise 0
 # $s3: jumping frame counter
 # $s4: tracks net sprite position change
-# $s5:
+# $s5: timer
 # $s6: keeps track of double jump (1 if double jump allowed, 0 otherwise)
 # $s7: tracks if sprite is in the air = 1, ie not standing on platform
 
@@ -85,6 +85,7 @@ main:
 	li $s3, 0
 	li $s7, 1
 	li $s6, 1
+	li $s5, 0
 	
 	li $t9, 0xffff0000
 	sw $zero 4($t9) #reset keyboard input
@@ -120,9 +121,6 @@ START_MENU_LOOP:
 	j START_MENU_LOOP
 	
 END_START_MENU:	
-
-
-	
 	jal CLEAR_SCREEN
 	#draw bottom platform
 
@@ -143,7 +141,6 @@ END_START_MENU:
 	beq $t9, 128, BOTTOM_DRAWN
 	j BOTTOM_PLATFORM_LOOP
 	BOTTOM_DRAWN:	
-	
 	
 	#draw platforms
 	li $t9 0
@@ -219,6 +216,12 @@ END_START_MENU:
 
 MAIN_LOOP: #main loop for game 
 	
+	#timer check
+	beq $s5 1000 EXIT #1000 is 31 secs
+	addi $s5 $s5 1
+	
+	jal PRINT_TIMER
+	
 	li $s4 0 #load net position change
 	
 	#check keyboard input
@@ -270,9 +273,9 @@ MAIN_LOOP: #main loop for game
 	#above not platform
 	subi $s0, $s0, 512
 	#jump delay
-	li $v0, 32
-	li $a0, 30
-	syscall	
+	#li $v0, 32
+	#li $a0, 30
+	#syscall	
 	#check number of jumping frames
 	beq $s3 20 RESET_JUMP
 	j SKIP_RESET_JUMP
@@ -292,57 +295,42 @@ MAIN_LOOP: #main loop for game
 	FALLING:
 	
 	addi $s0, $s0, 512	
-	li $v0, 32
-	li $a0, 30
-	syscall
+	#li $v0, 32
+	#li $a0, 30
+	#syscall
 	
 	SKIP_FALLING:
-	
-	
-	
-	
-	
 	AFTER_KEY_PRESS:
 
-	
-	
-	
-	
 	li $a0 CARROT_1_END
 	addi $a0 $a0 BASE_ADDRESS
 	jal DRAW_CARROT
 
-	
-	
-	j DRAW_BUNNY
-	
+
 	#sleep
 	li $v0, 32
 	li $a0, SLEEP_MS
 	syscall
-
+	
+	j DRAW_BUNNY
+	
 	j MAIN_LOOP
 	
-	
-
 UP:
 	sw $zero 4($t9)
 	beq $s7 0 ENABLE_DOUBLE_JUMP
 	beq $s6 1 ENABLE_DOUBLE_JUMP
 	j AFTER_KEY_PRESS
-	
 	ENABLE_DOUBLE_JUMP:
 	li $s1 1
 	li $s6 0
 	li $s3 0
-	
 	j AFTER_KEY_PRESS
 	
 	
 DOWN:
 	jal CLEAR_BUNNY
 	sw $zero 4($t9)
-	
 	#check bottom right pixel
 	move $t1 $s0
 	addi $t1 $t1 512
@@ -362,27 +350,29 @@ DOWN:
 	
 
 LEFT:
-	
 	sw $zero 4($t9)
-	
-
 	#check bottom left pixel
 	move $t1 $s0
 	subi $t1 $t1 4
 	subi $t1 $t1 OFFSET_BOTTOM_LEFT
 	lw $t1 4($t1)
 	beq $t1 RED AFTER_KEY_PRESS
-	
 	#if not touching border wall
 	jal CLEAR_BUNNY
 	subi $s4, $s4, 4
 	li $s2 1
+	
+	beq $a1 1 CHANGE_FRAME_LEFT
+	li $a1 1
+	j SKIP_CHANGE_FRAME_LEFT
+	CHANGE_FRAME_LEFT:
+	li $a1 0
+	
+	SKIP_CHANGE_FRAME_LEFT:
 	j DRAW_BUNNY
 	j AFTER_KEY_PRESS
 RIGHT:
-	
 	sw $zero 4($t9)
-	
 	#check bottom right pixel
 	move $t1 $s0
 	addi $t1 $t1 4
@@ -399,6 +389,7 @@ DRAW_BUNNY:
 	
 	#if invalid draw, dont update position
 	jal DRAW_BUNNY_HITBOX
+	jal CLEAR_BUNNY
 	add $s0 $s0 $s4
 	INVALID_DRAW:
 	
@@ -410,6 +401,9 @@ DRAW_BUNNY:
 #start from bottom right, to left
 #$s0 will contain the bottom right corner address of bunny sprite
 DRAW_BUNNY_LEFT:
+
+	beq $a1 1 DRAW_BUNNY_LEFT_RUNNING
+	
 	li $t1, BLACK # $t1 stores the black colour code
 	li $t2, WHITE # $t2 stores the white colour code
 	move $t3, $s0
@@ -565,10 +559,15 @@ DRAW_BUNNY_LEFT:
 	sw $t1, -32($t3) 
 	sw $t1, -40($t3) 
 	
+	
 	j MAIN_LOOP
 
+
+#PROBABLY NOT USING AND DELETING
 DRAW_BUNNY_LEFT_RUNNING:
-	jal CLEAR_BUNNY	
+	
+	li $a1 0
+	
 	li $t1, BLACK # $t1 stores the black colour code
 	li $t2, WHITE # $t2 stores the white colour code
 	move $t3, $s0
@@ -739,11 +738,9 @@ DRAW_BUNNY_LEFT_RUNNING:
 	sw $t1, -32($t3) 
 	sw $t1, -40($t3) 
 	
-	li $v0, 32
-	li $a0, 50
-	syscall
 	
-	j DRAW_BUNNY_LEFT
+	
+	j MAIN_LOOP
 	
 DRAW_BUNNY_RIGHT:
 	li $t1, BLACK # $t1 stores the black colour code
@@ -1259,6 +1256,454 @@ CLEAR_ARROW:
 	addi $t0, $t0, 512
 	
 	jr $ra
+
+PRINT_TIMER:
+	
+	#load address of first and second digit
+	
+	
+	
+	
+	j DRAW_ZERO
+	
+	
+	
+	DRAW_SECOND_DIGIT:
+	
+	jr $ra
+	
+DRAW_ONE:
+	li $t2, WHITE # $t2 stores the white colour code
+	li $t0, BASE_ADDRESS
+	
+	#draw 1
+	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
+	
+	#row 1
+	sw $t2, 0($t0) 
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 8($t0) 
+	
+	addi $t0, $t0, 512
+	#row 3 
+	sw $t2, 8($t0) 
+	
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 8($t0) 
+	
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 8($t0) 
+	
+	addi $t0, $t0, 512
+	#row 6
+	sw $t2, 8($t0) 
+	
+	addi $t0, $t0, 512
+	#row 7
+	sw $t2, 0($t0) 
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	sw $t2, 16($t0) 
+	
+	j DRAW_SECOND_DIGIT
+DRAW_TWO:
+	
+	li $t2, WHITE # $t2 stores the white colour code
+	li $t0, BASE_ADDRESS
+	
+	#draw 2
+	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
+	
+	#row 1
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 3 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 8($t0) 
+	
+	addi $t0, $t0, 512
+	#row 6
+	sw $t2, 4($t0) 
+	
+	addi $t0, $t0, 512
+	#row 7
+	sw $t2, 0($t0) 
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	sw $t2, 16($t0) 
+	
+	j DRAW_SECOND_DIGIT
+DRAW_THREE:
+	li $t2, WHITE # $t2 stores the white colour code
+	li $t0, BASE_ADDRESS
+	
+	#draw 3
+	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
+	
+	#row 1
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 3 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 6
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 7
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	j DRAW_SECOND_DIGIT
+DRAW_FOUR:
+	li $t2, WHITE # $t2 stores the white colour code
+	li $t0, BASE_ADDRESS
+	
+	#draw 4
+	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
+	
+	#row 1
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 3 
+	sw $t2, 4($t0) 
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 0($t0) 
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 0($t0) 
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 6
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 7
+	sw $t2, 12($t0) 
+	
+	j DRAW_SECOND_DIGIT
+DRAW_FIVE:
+	li $t2, WHITE # $t2 stores the white colour code
+	li $t0, BASE_ADDRESS
+	
+	#draw 5
+	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
+	
+	#row 1
+	sw $t2, 0($t0) 
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 0($t0) 
+	
+	addi $t0, $t0, 512
+	#row 3 
+	sw $t2, 0($t0) 
+	
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 0($t0) 
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 6
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 7
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	j DRAW_SECOND_DIGIT
+DRAW_SIX:
+	li $t2, WHITE # $t2 stores the white colour code
+	li $t0, BASE_ADDRESS
+	
+	#draw 6
+	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
+	
+	#row 1
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 3 
+	sw $t2, 0($t0) 
+	
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 0($t0) 
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 6
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 7
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	j DRAW_SECOND_DIGIT
+DRAW_SEVEN:
+	li $t2, WHITE # $t2 stores the white colour code
+	li $t0, BASE_ADDRESS
+	
+	#draw 7
+	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
+	
+	#row 1
+	sw $t2, 0($t0) 
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 3 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 8($t0) 
+	
+	addi $t0, $t0, 512
+	#row 6
+	sw $t2, 4($t0) 
+	
+	addi $t0, $t0, 512
+	#row 7
+	sw $t2, 0($t0) 
+	
+	j DRAW_SECOND_DIGIT
+DRAW_EIGHT:
+	li $t2, WHITE # $t2 stores the white colour code
+	li $t0, BASE_ADDRESS
+	
+	#draw 8
+	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
+	
+	#row 1
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 3 
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 6
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 7
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	j DRAW_SECOND_DIGIT
+DRAW_NINE:
+	li $t2, WHITE # $t2 stores the white colour code
+	li $t0, BASE_ADDRESS
+	
+	#draw 9
+	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
+	
+	#row 1
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 3 
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 6
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 7
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	j DRAW_SECOND_DIGIT
+DRAW_ZERO:
+	li $t2, WHITE # $t2 stores the white colour code
+	li $t0, BASE_ADDRESS
+	
+	#draw 0
+	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
+	
+	#row 1
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 3 
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 0($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 6
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0) 
+	
+	addi $t0, $t0, 512
+	#row 7
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	
+	j DRAW_SECOND_DIGIT
 
 CLEAR_SCREEN:
 	#clear screen
