@@ -217,7 +217,7 @@ END_START_MENU:
 MAIN_LOOP: #main loop for game 
 	
 	#timer check
-	beq $s5 1000 EXIT #1000 is 31 secs
+	beq $s5 2220 EXIT #2000 is 1 min
 	addi $s5 $s5 1
 	
 	jal PRINT_TIMER
@@ -1259,25 +1259,164 @@ CLEAR_ARROW:
 
 PRINT_TIMER:
 	
+	move $t8 $ra
+	
 	#load address of first and second digit
 	
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 952 #t0 holds top left pixel address of number
 	
+	blt $s5 370 DRAW_FIVE_J
+	jal CLEAR_NUMBER
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 952
+	blt $s5 740 DRAW_FOUR_J
+	jal CLEAR_NUMBER
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 952
+	blt $s5 1110 DRAW_THREE_J
+	jal CLEAR_NUMBER
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 952
+	blt $s5 1480 DRAW_TWO_J
+	jal CLEAR_NUMBER
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 952
+	blt $s5 1850 DRAW_ONE_J
+	jal CLEAR_NUMBER
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 952
+	blt $s5 2220 DRAW_ZERO_J
 	
-	
-	j DRAW_ZERO
-	
+	DRAW_FIVE_J:
+	jal DRAW_FIVE
+	move $t4 $s5
+	j DRAW_SECOND_DIGIT
+	DRAW_FOUR_J:
+	jal DRAW_FOUR
+	sub $t4 $s5 370
+	j DRAW_SECOND_DIGIT
+	DRAW_THREE_J:
+	jal DRAW_THREE
+	sub $t4 $s5 740
+	j DRAW_SECOND_DIGIT
+	DRAW_TWO_J:
+	jal DRAW_TWO
+	sub $t4 $s5 1110
+	j DRAW_SECOND_DIGIT
+	DRAW_ONE_J:
+	jal DRAW_ONE
+	sub $t4 $s5 1480
+	j DRAW_SECOND_DIGIT
+	DRAW_ZERO_J:
+	jal DRAW_ZERO
+	sub $t4 $s5 1850
+	j DRAW_SECOND_DIGIT
 	
 	
 	DRAW_SECOND_DIGIT:
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 984
+	
+	
+	blt $t4 37 DRAW_NINE_J2
+	jal CLEAR_NUMBER
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 984
+	blt $t4 74 DRAW_EIGHT_J2
+	jal CLEAR_NUMBER
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 984
+	blt $t4 111 DRAW_SEVEN_J2
+	jal CLEAR_NUMBER
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 984
+	blt $t4 148 DRAW_SIX_J2
+	jal CLEAR_NUMBER
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 984
+	blt $t4 185 DRAW_FIVE_J2
+	jal CLEAR_NUMBER
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 984
+	blt $t4 222 DRAW_FOUR_J2
+	jal CLEAR_NUMBER
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 984
+	blt $t4 259 DRAW_THREE_J2
+	jal CLEAR_NUMBER
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 984
+	blt $t4 296 DRAW_TWO_J2
+	jal CLEAR_NUMBER
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 984
+	blt $t4 333 DRAW_ONE_J2
+	jal CLEAR_NUMBER
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 984
+	blt $t4 368 DRAW_ZERO_J2
+	jal CLEAR_NUMBER
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 984
+	
+	
+	DRAW_NINE_J2:
+	jal DRAW_NINE
+	j END_TIMER
+	DRAW_EIGHT_J2:
+	jal DRAW_EIGHT
+	j END_TIMER
+	DRAW_SEVEN_J2:
+	jal DRAW_SEVEN
+	j END_TIMER
+	DRAW_SIX_J2:
+	jal DRAW_SIX
+	j END_TIMER
+	DRAW_FIVE_J2:
+	jal DRAW_FIVE
+	j END_TIMER
+	DRAW_FOUR_J2:
+	jal DRAW_FOUR
+	j END_TIMER
+	DRAW_THREE_J2:
+	jal DRAW_THREE
+	j END_TIMER
+	DRAW_TWO_J2:
+	jal DRAW_TWO
+	j END_TIMER
+	DRAW_ONE_J2:
+	jal DRAW_ONE
+	j END_TIMER
+	DRAW_ZERO_J2:
+	jal DRAW_ZERO
+	j END_TIMER
+	
+	END_TIMER:
+	jr $t8
+
+CLEAR_NUMBER:
+	li $t2, BLACK # $t2 stores the black colour code
+	
+	li $t9 0
+	CLEAR_NUMBER_LOOP:
+	sw $t2, 0($t0) 
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	sw $t2, 16($t0) 
+	addi $t0, $t0, 512
+	addi $t9 $t9 1
+	blt $t9 7 CLEAR_NUMBER_LOOP
 	
 	jr $ra
 	
 DRAW_ONE:
 	li $t2, WHITE # $t2 stores the white colour code
-	li $t0, BASE_ADDRESS
+	
 	
 	#draw 1
-	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
+	
 	
 	#row 1
 	sw $t2, 0($t0) 
@@ -1312,14 +1451,10 @@ DRAW_ONE:
 	sw $t2, 12($t0) 
 	sw $t2, 16($t0) 
 	
-	j DRAW_SECOND_DIGIT
+	jr $ra
 DRAW_TWO:
 	
 	li $t2, WHITE # $t2 stores the white colour code
-	li $t0, BASE_ADDRESS
-	
-	#draw 2
-	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
 	
 	#row 1
 	sw $t2, 4($t0) 
@@ -1355,13 +1490,9 @@ DRAW_TWO:
 	sw $t2, 12($t0) 
 	sw $t2, 16($t0) 
 	
-	j DRAW_SECOND_DIGIT
+	jr $ra
 DRAW_THREE:
 	li $t2, WHITE # $t2 stores the white colour code
-	li $t0, BASE_ADDRESS
-	
-	#draw 3
-	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
 	
 	#row 1
 	sw $t2, 4($t0) 
@@ -1397,13 +1528,9 @@ DRAW_THREE:
 	sw $t2, 8($t0) 
 	sw $t2, 12($t0) 
 	
-	j DRAW_SECOND_DIGIT
+	jr $ra
 DRAW_FOUR:
 	li $t2, WHITE # $t2 stores the white colour code
-	li $t0, BASE_ADDRESS
-	
-	#draw 4
-	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
 	
 	#row 1
 	sw $t2, 12($t0) 
@@ -1439,13 +1566,9 @@ DRAW_FOUR:
 	#row 7
 	sw $t2, 12($t0) 
 	
-	j DRAW_SECOND_DIGIT
+	jr $ra
 DRAW_FIVE:
 	li $t2, WHITE # $t2 stores the white colour code
-	li $t0, BASE_ADDRESS
-	
-	#draw 5
-	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
 	
 	#row 1
 	sw $t2, 0($t0) 
@@ -1484,13 +1607,9 @@ DRAW_FIVE:
 	sw $t2, 8($t0) 
 	sw $t2, 12($t0) 
 	
-	j DRAW_SECOND_DIGIT
+	jr $ra
 DRAW_SIX:
 	li $t2, WHITE # $t2 stores the white colour code
-	li $t0, BASE_ADDRESS
-	
-	#draw 6
-	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
 	
 	#row 1
 	sw $t2, 4($t0) 
@@ -1529,13 +1648,9 @@ DRAW_SIX:
 	sw $t2, 8($t0) 
 	sw $t2, 12($t0) 
 	
-	j DRAW_SECOND_DIGIT
+	jr $ra
 DRAW_SEVEN:
 	li $t2, WHITE # $t2 stores the white colour code
-	li $t0, BASE_ADDRESS
-	
-	#draw 7
-	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
 	
 	#row 1
 	sw $t2, 0($t0) 
@@ -1568,13 +1683,9 @@ DRAW_SEVEN:
 	#row 7
 	sw $t2, 0($t0) 
 	
-	j DRAW_SECOND_DIGIT
+	jr $ra
 DRAW_EIGHT:
 	li $t2, WHITE # $t2 stores the white colour code
-	li $t0, BASE_ADDRESS
-	
-	#draw 8
-	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
 	
 	#row 1
 	sw $t2, 4($t0) 
@@ -1613,13 +1724,9 @@ DRAW_EIGHT:
 	sw $t2, 8($t0) 
 	sw $t2, 12($t0) 
 	
-	j DRAW_SECOND_DIGIT
+	jr $ra
 DRAW_NINE:
 	li $t2, WHITE # $t2 stores the white colour code
-	li $t0, BASE_ADDRESS
-	
-	#draw 9
-	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
 	
 	#row 1
 	sw $t2, 4($t0) 
@@ -1658,13 +1765,9 @@ DRAW_NINE:
 	sw $t2, 8($t0) 
 	sw $t2, 12($t0) 
 	
-	j DRAW_SECOND_DIGIT
+	jr $ra
 DRAW_ZERO:
 	li $t2, WHITE # $t2 stores the white colour code
-	li $t0, BASE_ADDRESS
-	
-	#draw 0
-	addi $t0 $t0 10436 #t0 holds top left pixel address of 2
 	
 	#row 1
 	sw $t2, 4($t0) 
@@ -1703,7 +1806,7 @@ DRAW_ZERO:
 	sw $t2, 8($t0) 
 	sw $t2, 12($t0) 
 	
-	j DRAW_SECOND_DIGIT
+	jr $ra
 
 CLEAR_SCREEN:
 	#clear screen
