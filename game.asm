@@ -35,6 +35,8 @@
 #####################################################################
 
 .data
+MOVING_PLATFORM_COUNTER: 0
+MOVING_PLATFORM_CHECK: 0
 
 .globl main
 
@@ -142,6 +144,7 @@ END_START_MENU:
 	j BOTTOM_PLATFORM_LOOP
 	BOTTOM_DRAWN:	
 	
+	
 	#draw platforms
 	li $t9 0
 	li $t8 10240
@@ -179,17 +182,6 @@ END_START_MENU:
 	j BOTTOM_RIGHT_PLATFORM_LOOP
 	BOTTOM_RIGHT_DRAWN:
 	
-	li $t9 0
-	li $t8 14024
-	addi $t8 $t8 BASE_ADDRESS
-	
-	BOTTOM_MIDDLE_PLATFORM_LOOP:	
-	sw $t1, 0($t8) 
-	addi $t9, $t9, 1
-	addi $t8, $t8, 4
-	beq $t9, 20, BOTTOM_MIDDLE_DRAWN
-	j BOTTOM_MIDDLE_PLATFORM_LOOP
-	BOTTOM_MIDDLE_DRAWN:
 	
 	#draw borders
 	li $t9 0
@@ -213,8 +205,99 @@ END_START_MENU:
 	beq $t9, 126, RIGHT_BORDER_DRAWN
 	j RIGHT_BORDER_LOOP
 	RIGHT_BORDER_DRAWN:	
-
+	
+	#draw score box
+	li $t9 0
+	li $t8 6504
+	addi $t8 $t8 BASE_ADDRESS
+	
+	SCORE_BOX_BOTTOM_LOOP:
+	sw $t1, 0($t8) 
+	addi $t9, $t9, 1
+	addi $t8, $t8, 4
+	blt $t9 38 SCORE_BOX_BOTTOM_LOOP
+	
+	li $t9 0
+	li $t8 360
+	addi $t8 $t8 BASE_ADDRESS
+	
+	SCORE_BOX_SIDE_LOOP:
+	sw $t1, 0($t8) 
+	addi $t9, $t9, 1
+	addi $t8, $t8, 512
+	blt $t9 13 SCORE_BOX_SIDE_LOOP
+	
+	
+	#draw ceiling
+	li $t9, 0
+	li $t8 0
+	addi $t8 $t8 BASE_ADDRESS
+	CEILING_LOOP:	
+	sw $t1, 0($t8) 
+	addi $t9, $t9, 1
+	addi $t8, $t8, 4
+	blt $t9, 128, CEILING_LOOP
+	
+	la $t0 MOVING_PLATFORM_COUNTER #t0 holds address of variable
+	lw $t3 0($t0) #t3 holds current index between 1 and 10
+	la $t4 MOVING_PLATFORM_CHECK
+	lw $t5 0($t4) #t5 holds 1 or 0 whether platform should move left or right
+	
+	li $t3 0
+	li $t5 0
+	sw $t3 0($t0)
+	sw $t5 0($t4)
+	
 MAIN_LOOP: #main loop for game 
+	
+	
+	#draw moving platform in middle
+	la $t0 MOVING_PLATFORM_COUNTER #t0 holds address of variable
+	lw $t3 0($t0) #t3 holds current index between 1 and 10
+	la $t4 MOVING_PLATFORM_CHECK
+	lw $t5 0($t4) #t5 holds 1 or 0 whether platform should move left or right
+	
+	beq $t5 0 MOVING_RIGHT
+	#else moving left
+	bne $t3 0 SKIP_CHANGE_DIRECTION_RIGHT
+	li $t5 0
+	SKIP_CHANGE_DIRECTION_RIGHT:
+	subi $t3 $t3 1
+	j MOVING_PLATFORM_END
+	MOVING_RIGHT:
+	bne $t3 30 SKIP_CHANGE_DIRECTION_LEFT
+	li $t5 1
+	SKIP_CHANGE_DIRECTION_LEFT:
+	addi $t3 $t3 1
+	
+	MOVING_PLATFORM_END:
+	sw $t3 0($t0)
+	sw $t5 0($t4)
+	
+	li $t1, RED 
+	li $t2, BLACK
+	li $t9 0
+	sll $t3 $t3 2
+	li $t8 14000
+	addi $t8 $t8 BASE_ADDRESS
+	
+	#clear platform
+	MIDDLE_PLATFORM_CLEAR_LOOP:	
+	sw $t2, -4($t8) 
+	addi $t9, $t9, 1
+	addi $t8, $t8, 4
+	blt $t9, 54, MIDDLE_PLATFORM_CLEAR_LOOP
+	
+	li $t9 0
+	li $t8 14000
+	addi $t8 $t8 BASE_ADDRESS
+	add $t8 $t8 $t3
+	MIDDLE_PLATFORM_LOOP:	
+	sw $t1, 0($t8) 
+	addi $t9, $t9, 1
+	addi $t8, $t8, 4
+	blt $t9, 20, MIDDLE_PLATFORM_LOOP
+	
 	
 	#timer check
 	beq $s5 2220 EXIT #2000 is 1 min
@@ -228,7 +311,10 @@ MAIN_LOOP: #main loop for game
 	li $t9, 0xffff0000
 	lw $t8, 4($t9)
 	beq $t8, 0x70, START_MAIN #if key = p, exit
+	
+	beq $s6 0 SKIP_W_PRESS
 	beq $t8, 0x77, UP #if key = w, go up
+	SKIP_W_PRESS:
 	beq $t8, 0x73, DOWN #if key = s, go down
 	beq $t8, 0x61, LEFT #if key = a, go left
 	beq $t8, 0x64, RIGHT #if key = d, go right
@@ -259,17 +345,34 @@ MAIN_LOOP: #main loop for game
 	j SKIP_JUMPING
 	JUMPING:
 	#check if above is platform
+#	move $t1 $s0
+#	subi $t1 $t1 512
+#	subi $t1 $t1 OFFSET_TOP_LEFT
+#	lw $t1 4($t1)
+#	beq $t1 RED RESET_JUMP
+	#check top left/right pixel
+#	move $t1 $s0
+#	subi $t1 $t1 512
+#	subi $t1 $t1 OFFSET_TOP_RIGHT
+#	lw $t1 4($t1)
+#	beq $t1 RED RESET_JUMP
+	
+	
+	###
 	move $t1 $s0
 	subi $t1 $t1 512
 	subi $t1 $t1 OFFSET_TOP_LEFT
-	lw $t1 4($t1)
-	beq $t1 RED RESET_JUMP
-	#check bottom left pixel
-	move $t1 $s0
-	subi $t1 $t1 512
-	subi $t1 $t1 OFFSET_TOP_RIGHT
-	lw $t1 4($t1)
-	beq $t1 RED RESET_JUMP
+	
+	li $t9 0
+	ABOVE_PLATFORM_CHECK_LOOP:
+	lw $t2 4($t1)
+	addi $t1 $t1 4
+	beq $t2 RED RESET_JUMP
+	addi $t9 $t9 1
+	blt $t9 14 ABOVE_PLATFORM_CHECK_LOOP
+	###
+	
+	
 	#above not platform
 	subi $s0, $s0, 512
 	#jump delay
@@ -1264,28 +1367,28 @@ PRINT_TIMER:
 	#load address of first and second digit
 	
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 952 #t0 holds top left pixel address of number
+	addi $t0 $t0 1976 #t0 holds top left pixel address of number
 	
 	blt $s5 370 DRAW_FIVE_J
 	jal CLEAR_NUMBER
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 952
+	addi $t0 $t0 1976
 	blt $s5 740 DRAW_FOUR_J
 	jal CLEAR_NUMBER
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 952
+	addi $t0 $t0 1976
 	blt $s5 1110 DRAW_THREE_J
 	jal CLEAR_NUMBER
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 952
+	addi $t0 $t0 1976
 	blt $s5 1480 DRAW_TWO_J
 	jal CLEAR_NUMBER
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 952
+	addi $t0 $t0 1976
 	blt $s5 1850 DRAW_ONE_J
 	jal CLEAR_NUMBER
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 952
+	addi $t0 $t0 1976
 	blt $s5 2220 DRAW_ZERO_J
 	
 	DRAW_FIVE_J:
@@ -1316,49 +1419,49 @@ PRINT_TIMER:
 	
 	DRAW_SECOND_DIGIT:
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 984
+	addi $t0 $t0 2008
 	
 	
 	blt $t4 37 DRAW_NINE_J2
 	jal CLEAR_NUMBER
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 984
+	addi $t0 $t0 2008
 	blt $t4 74 DRAW_EIGHT_J2
 	jal CLEAR_NUMBER
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 984
+	addi $t0 $t0 2008
 	blt $t4 111 DRAW_SEVEN_J2
 	jal CLEAR_NUMBER
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 984
+	addi $t0 $t0 2008
 	blt $t4 148 DRAW_SIX_J2
 	jal CLEAR_NUMBER
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 984
+	addi $t0 $t0 2008
 	blt $t4 185 DRAW_FIVE_J2
 	jal CLEAR_NUMBER
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 984
+	addi $t0 $t0 2008
 	blt $t4 222 DRAW_FOUR_J2
 	jal CLEAR_NUMBER
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 984
+	addi $t0 $t0 2008
 	blt $t4 259 DRAW_THREE_J2
 	jal CLEAR_NUMBER
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 984
+	addi $t0 $t0 2008
 	blt $t4 296 DRAW_TWO_J2
 	jal CLEAR_NUMBER
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 984
+	addi $t0 $t0 2008
 	blt $t4 333 DRAW_ONE_J2
 	jal CLEAR_NUMBER
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 984
+	addi $t0 $t0 2008
 	blt $t4 368 DRAW_ZERO_J2
 	jal CLEAR_NUMBER
 	li $t0, BASE_ADDRESS
-	addi $t0 $t0 984
+	addi $t0 $t0 2008
 	
 	
 	DRAW_NINE_J2:
