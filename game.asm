@@ -38,6 +38,15 @@
 MOVING_PLATFORM_COUNTER: 0
 MOVING_PLATFORM_CHECK: 0
 
+SCORE_COUNTER: 0
+
+CARROT_ONE: 0
+CARROT_TWO: 0
+CARROT_THREE: 0
+
+CARROT_DIRECTION: 0
+CARROT_MOVE_COUNTER: 0
+
 .globl main
 
 .eqv 	BASE_ADDRESS 	0x10008000
@@ -61,9 +70,14 @@ MOVING_PLATFORM_CHECK: 0
 .eqv	BLACK	0x000000
 .eqv	GREEN	0x008000
 .eqv	ORANGE	0xFFA500
+.eqv	BLUE	0x0000FF 
 
-.eqv	CARROT_1_START 		17972
+.eqv	CARROT_1_START 		17460
 .eqv	CARROT_1_END 		19508
+.eqv	CARROT_2_START 		29632
+.eqv	CARROT_2_END 		31680
+.eqv	CARROT_3_START 		7268
+.eqv	CARROT_3_END 		9316
 .text
 
 # IMPORTANT $s REGISTERS:
@@ -99,7 +113,6 @@ START_MENU_LOOP:
 	#check keyboard input
 	li $t9, 0xffff0000
 	lw $t8, 4($t9)
-	beq $t8, 0x70, EXIT #if key = p, exit
 	beq $t8, 0x77, GO_TO_START #if key = w, go up
 	beq $t8, 0x73, GO_TO_EXIT #if key = s, go down
 	beq $t8, 0x20, SELECT_OPTION #if key = space, go select option
@@ -212,7 +225,7 @@ END_START_MENU:
 	addi $t8 $t8 BASE_ADDRESS
 	
 	SCORE_BOX_BOTTOM_LOOP:
-	sw $t1, 0($t8) 
+	sw $t1, -4($t8) 
 	addi $t9, $t9, 1
 	addi $t8, $t8, 4
 	blt $t9 38 SCORE_BOX_BOTTOM_LOOP
@@ -222,7 +235,7 @@ END_START_MENU:
 	addi $t8 $t8 BASE_ADDRESS
 	
 	SCORE_BOX_SIDE_LOOP:
-	sw $t1, 0($t8) 
+	sw $t1, -8($t8) 
 	addi $t9, $t9, 1
 	addi $t8, $t8, 512
 	blt $t9 13 SCORE_BOX_SIDE_LOOP
@@ -238,15 +251,33 @@ END_START_MENU:
 	addi $t8, $t8, 4
 	blt $t9, 128, CEILING_LOOP
 	
-	la $t0 MOVING_PLATFORM_COUNTER #t0 holds address of variable
-	lw $t3 0($t0) #t3 holds current index between 1 and 10
-	la $t4 MOVING_PLATFORM_CHECK
-	lw $t5 0($t4) #t5 holds 1 or 0 whether platform should move left or right
+	#draw carrot score icon
+	li $a0 5540
+	addi $a0 $a0 BASE_ADDRESS
+	jal DRAW_CARROT
 	
+	#initialize .data variables with 0
 	li $t3 0
-	li $t5 0
+	
+	la $t0 MOVING_PLATFORM_COUNTER #t0 holds address of variable
 	sw $t3 0($t0)
-	sw $t5 0($t4)
+	la $t0 MOVING_PLATFORM_CHECK
+	sw $t3 0($t0)
+	la $t0 SCORE_COUNTER
+	sw $t3 0($t0)
+	la $t0 CARROT_ONE
+	sw $t3 0($t0)
+	la $t0 CARROT_TWO
+	sw $t3 0($t0)
+	la $t0 CARROT_THREE
+	sw $t3 0($t0)
+	la $t0 CARROT_DIRECTION
+	sw $t3 0($t0)
+	la $t0 CARROT_MOVE_COUNTER
+	sw $t3 0($t0)
+	
+	
+	
 	
 MAIN_LOOP: #main loop for game 
 	
@@ -281,17 +312,19 @@ MAIN_LOOP: #main loop for game
 	li $t8 14000
 	addi $t8 $t8 BASE_ADDRESS
 	
-	#clear platform
-	MIDDLE_PLATFORM_CLEAR_LOOP:	
-	sw $t2, -4($t8) 
-	addi $t9, $t9, 1
-	addi $t8, $t8, 4
-	blt $t9, 54, MIDDLE_PLATFORM_CLEAR_LOOP
-	
 	li $t9 0
 	li $t8 14000
 	addi $t8 $t8 BASE_ADDRESS
 	add $t8 $t8 $t3
+	
+	beq $t5 1 SKIP_MOVE_RIGHT
+	sw $t2, -4($t8)
+	
+	j MIDDLE_PLATFORM_LOOP
+	
+	SKIP_MOVE_RIGHT:
+	sw $t2, 80($t8)
+	
 	MIDDLE_PLATFORM_LOOP:	
 	sw $t1, 0($t8) 
 	addi $t9, $t9, 1
@@ -304,6 +337,53 @@ MAIN_LOOP: #main loop for game
 	addi $s5 $s5 1
 	
 	jal PRINT_TIMER
+	
+	#score check
+	la $t0 SCORE_COUNTER
+	la $t1 CARROT_ONE
+	lw $t2 0($t1)
+	la $t1 CARROT_TWO
+	lw $t3 0($t1)
+	la $t1 CARROT_THREE
+	lw $t4 0($t1)
+	
+	div $t2 $t2 2
+	div $t3 $t3 2
+	div $t4 $t4 2
+	
+	add $t6 $t2 $t3
+	add $t6 $t6 $t4
+	
+	sw $t6 0($t0)
+	
+	li $t0 2408
+	addi $t0 $t0 BASE_ADDRESS
+	bne $t6 0 SKIP_DRAW_ZERO
+	jal DRAW_ZERO
+	j SCORE_DRAW_DONE
+	SKIP_DRAW_ZERO:
+	
+	jal CLEAR_NUMBER
+	bne $t6 1 SKIP_DRAW_ONE
+	li $t0 2408
+	addi $t0 $t0 BASE_ADDRESS
+	jal DRAW_ONE
+	j SCORE_DRAW_DONE
+	SKIP_DRAW_ONE:
+	bne $t6 2 SKIP_DRAW_TWO
+	li $t0 2408
+	addi $t0 $t0 BASE_ADDRESS
+	jal DRAW_TWO
+	j SCORE_DRAW_DONE
+	SKIP_DRAW_TWO:
+	bne $t6 3 SKIP_DRAW_THREE
+	li $t0 2408
+	addi $t0 $t0 BASE_ADDRESS
+	jal DRAW_THREE
+	j SCORE_DRAW_DONE
+	SKIP_DRAW_THREE:
+	
+	SCORE_DRAW_DONE:
 	
 	li $s4 0 #load net position change
 	
@@ -396,7 +476,6 @@ MAIN_LOOP: #main loop for game
 	beq $s7 1 FALLING
 	j SKIP_FALLING
 	FALLING:
-	
 	addi $s0, $s0, 512	
 	#li $v0, 32
 	#li $a0, 30
@@ -404,12 +483,131 @@ MAIN_LOOP: #main loop for game
 	
 	SKIP_FALLING:
 	AFTER_KEY_PRESS:
-
+	
+	
+	### 
+	la $t0 CARROT_DIRECTION
+	lw $t7 0($t0)
+	la $t0 CARROT_MOVE_COUNTER
+	lw $t8 0($t0)
+	
+	bne $t7 0 CARROT_DOWN
+	beq $t8 -3 CARROT_DIRECTION_DOWN
+	move $t6 $t8
+	subi $t8 $t8 1
+	sw $t8 0($t0)
+	j DONE_CARROT_OFFSET
+	CARROT_DIRECTION_DOWN:
+	la $t0 CARROT_DIRECTION
+	li $t7 1
+	sw $t7 0($t0)
+	
+	CARROT_DOWN:
+	beq $t8 0 CARROT_DIRECTION_UP
+	move $t6 $t8
+	
+	addi $t8 $t8 1
+	la $t0 CARROT_MOVE_COUNTER
+	sw $t8 0($t0)
+	j DONE_CARROT_OFFSET
+	CARROT_DIRECTION_UP:
+	la $t0 CARROT_DIRECTION
+	li $t7 0
+	sw $t7 0($t0)
+	la $t0 CARROT_MOVE_COUNTER
+	lw $t8 0($t0)
+	move $t6 $t8
+	subi $t8 $t8 1
+	sw $t8 0($t0)
+	
+	DONE_CARROT_OFFSET:
+	mul $t6 $t6 512
+	###
+	
+	
+	
+	#draw carrot 1
+	
+	
+	la $t0 CARROT_ONE
+	lw $t1 0($t0)
+	
 	li $a0 CARROT_1_END
 	addi $a0 $a0 BASE_ADDRESS
+	add $a0 $a0 $t6
+	
+	beq $t1 0 DRAW_CARROT_ONE
+	beq $t1 2 SKIP_DRAW_CARROT_ONE
+	jal CLEAR_CARROT
+	li $t3 2
+	la $t0 CARROT_ONE
+	sw $t3 0($t0)
+	j SKIP_DRAW_CARROT_ONE
+	
+	DRAW_CARROT_ONE:
+	li $a0 CARROT_1_END
+	addi $a0 $a0 BASE_ADDRESS
+	jal CLEAR_CARROT
+	li $a0 CARROT_1_END
+	addi $a0 $a0 BASE_ADDRESS
+	add $a0 $a0 $t6
 	jal DRAW_CARROT
 
+	SKIP_DRAW_CARROT_ONE:
+	
+	#draw carrot 2
+	la $t0 CARROT_TWO
+	lw $t1 0($t0)
+	
+	li $a0 CARROT_2_END
+	addi $a0 $a0 BASE_ADDRESS
+	
+	beq $t1 0 DRAW_CARROT_TWO
+	beq $t1 2 SKIP_DRAW_CARROT_TWO
+	jal CLEAR_CARROT
+	li $t3 2
+	la $t0 CARROT_TWO
+	sw $t3 0($t0)
+	j SKIP_DRAW_CARROT_TWO
+	
+	DRAW_CARROT_TWO:
+	li $a0 CARROT_2_END
+	addi $a0 $a0 BASE_ADDRESS
+	jal CLEAR_CARROT
+	li $a0 CARROT_2_END
+	addi $a0 $a0 BASE_ADDRESS
+	add $a0 $a0 $t6
+	jal DRAW_CARROT
 
+	SKIP_DRAW_CARROT_TWO:
+	
+	#draw carrot 3
+	la $t0 CARROT_THREE
+	lw $t1 0($t0)
+	
+	li $a0 CARROT_3_END
+	addi $a0 $a0 BASE_ADDRESS
+	
+	beq $t1 0 DRAW_CARROT_THREE
+	beq $t1 2 SKIP_DRAW_CARROT_THREE
+	jal CLEAR_CARROT
+	li $t3 2
+	la $t0 CARROT_THREE
+	sw $t3 0($t0)
+	j SKIP_DRAW_CARROT_THREE
+	
+	DRAW_CARROT_THREE:
+	li $a0 CARROT_3_END
+	addi $a0 $a0 BASE_ADDRESS
+	jal CLEAR_CARROT
+	li $a0 CARROT_3_END
+	addi $a0 $a0 BASE_ADDRESS
+	add $a0 $a0 $t6
+	jal DRAW_CARROT_BLUE
+
+	SKIP_DRAW_CARROT_THREE:
+	
+	
 	#sleep
 	li $v0, 32
 	li $a0, SLEEP_MS
@@ -453,14 +651,20 @@ DOWN:
 	
 
 LEFT:
+	
 	sw $zero 4($t9)
 	#check bottom left pixel
 	move $t1 $s0
 	subi $t1 $t1 4
-	subi $t1 $t1 OFFSET_BOTTOM_LEFT
+	subi $t1 $t1 OFFSET_TOP_LEFT
 	lw $t1 4($t1)
 	beq $t1 RED AFTER_KEY_PRESS
 	#if not touching border wall
+	 
+	
+
+	
+	
 	jal CLEAR_BUNNY
 	subi $s4, $s4, 4
 	li $s2 1
@@ -1037,8 +1241,28 @@ DRAW_BUNNY_HITBOX:
 	HITBOX_BUNNY_LOOP:
 	lw $t4 0($t3)
 	beq $t4 RED INVALID_DRAW
+	bne $t4 ORANGE SKIP_UPDATE_CARROT_TWO
+	la $t0 CARROT_TWO
+	li $t5 1
+	sw $t5 0($t0)
+	
+	SKIP_UPDATE_CARROT_TWO:
+	
+	
 	lw $t4 -56($t3)
 	beq $t4 RED INVALID_DRAW
+	bne $t4 BLUE SKIP_UPDATE_CARROT_THREE
+	la $t0 CARROT_THREE
+	li $t5 1
+	sw $t5 0($t0)
+	
+	SKIP_UPDATE_CARROT_THREE:
+	bne $t4 GREEN SKIP_UPDATE_CARROT_ONE
+	la $t0 CARROT_ONE
+	li $t5 1
+	sw $t5 0($t0)
+	
+	SKIP_UPDATE_CARROT_ONE:
 	subi $t3, $t3, 512
 	addi $t8 $t8 1
 	blt $t8 13 HITBOX_BUNNY_LOOP
@@ -1109,6 +1333,95 @@ DRAW_CARROT:
 	#row 9
 	sw $t2, -8($t3) 
 	subi $t3, $t3, 512
+	
+	jr $ra
+
+DRAW_CARROT_BLUE:
+	li $t1, ORANGE # $t1 stores the orange colour code
+	li $t2, BLUE # $t2 stores the green colour code
+	move $t3, $a0 # $t3 stores the bottom right pixel of carrot
+	#row 1
+	sw $t1, -24($t3) 
+	sw $t1, -28($t3) 		
+	subi $t3, $t3, 512
+	
+	#row 2 
+	sw $t1, -16($t3) 
+	sw $t1, -20($t3) 
+	sw $t1, -24($t3) 
+	sw $t1, -28($t3) 	
+	sw $t1, -32($t3) 	
+	subi $t3, $t3, 512
+	
+	#row 3 
+	sw $t1, -12($t3) 
+	sw $t1, -16($t3) 
+	sw $t1, -20($t3) 
+	sw $t1, -24($t3) 
+	sw $t1, -28($t3) 		
+	subi $t3, $t3, 512
+	
+	#row 4 
+	sw $t1, -8($t3) 
+	sw $t1, -12($t3) 
+	sw $t1, -16($t3) 
+	sw $t1, -20($t3) 
+	sw $t1, -24($t3) 	
+	subi $t3, $t3, 512
+	
+	#row 5
+	sw $t2, -4($t3) 
+	sw $t1, -8($t3) 
+	sw $t1, -12($t3) 
+	sw $t1, -16($t3) 
+	sw $t1, -20($t3) 
+	subi $t3, $t3, 512
+	
+	#row 6
+	sw $t2, 0($t3) 
+	sw $t2, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t1, -12($t3) 
+	sw $t1, -16($t3) 	
+	subi $t3, $t3, 512
+	
+	#row 7
+	sw $t2, 0($t3) 
+	sw $t2, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t2, -12($t3) 	
+	subi $t3, $t3, 512
+	
+	#row 8
+	sw $t2, -4($t3) 
+	sw $t2, -8($t3) 	
+	subi $t3, $t3, 512
+	
+	#row 9
+	sw $t2, -8($t3) 
+	subi $t3, $t3, 512
+	
+	jr $ra
+	
+CLEAR_CARROT:
+	li $t0 BLACK
+	move $t3, $a0
+	
+	li $t9 0
+	CLEAR_CARROT_LOOP:
+	sw $t0, 0($t3) 
+	sw $t0, -4($t3) 
+	sw $t0, -8($t3) 
+	sw $t0, -12($t3) 
+	sw $t0, -16($t3) 
+	sw $t0, -20($t3) 
+	sw $t0, -24($t3) 
+	sw $t0, -28($t3) 
+	sw $t0, -28($t3) 	
+	sw $t0, -32($t3) 
+	subi $t3, $t3, 512
+	addi $t9 $t9 1
+	blt $t9 13 CLEAR_CARROT_LOOP
 	
 	jr $ra
 	
