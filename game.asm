@@ -18,16 +18,19 @@
 #
 # Which approved features have been implemented for milestone 3?
 # (See the assignment handout for the list of additional features)
-# 1. (fill in the feature, if any)
-# 2. (fill in the feature, if any)
-# 3. (fill in the feature, if any)
-# ... (add more if necessary)
+# 1. A. Health/score [2 marks]
+# 2. B. Fail condition [1 mark]
+# 3. C. Win condition [1 mark]
+# 4. D. Moving objects [2 mark]
+# 5. E. Moving platforms [2 marks]
+# 6. K. Double jump [1 mark]
+# 7. M. Start menu [1 mark]
 #
 # Link to video demonstration for final submission:
 # - (insert YouTube / MyMedia / other URL here). Make sure we can view it!
 #
 # Are you OK with us sharing the video with people outside course staff?
-# - yes / no / yes, and please share this project github link as well!
+# - yes to video and github. and please share this project github link as well! github:
 #
 # Any additional information that the TA needs to know:
 # - (write here, if any)
@@ -72,11 +75,8 @@ CARROT_MOVE_COUNTER: 0
 .eqv	ORANGE	0xFFA500
 .eqv	BLUE	0x0000FF 
 
-.eqv	CARROT_1_START 		17460
 .eqv	CARROT_1_END 		19508
-.eqv	CARROT_2_START 		29632
 .eqv	CARROT_2_END 		31680
-.eqv	CARROT_3_START 		7268
 .eqv	CARROT_3_END 		9316
 .text
 
@@ -333,7 +333,7 @@ MAIN_LOOP: #main loop for game
 	
 	
 	#timer check
-	beq $s5 2220 EXIT #2000 is 1 min
+	beq $s5 2220 LOSE_SCREEN #2220 is 1 min
 	addi $s5 $s5 1
 	
 	jal PRINT_TIMER
@@ -355,6 +355,8 @@ MAIN_LOOP: #main loop for game
 	add $t6 $t6 $t4
 	
 	sw $t6 0($t0)
+	
+	beq $t6 3 WIN_SCREEN
 	
 	li $t0 2408
 	addi $t0 $t0 BASE_ADDRESS
@@ -2224,6 +2226,298 @@ DRAW_ZERO:
 	
 	jr $ra
 
+WIN_SCREEN:
+	jal CLEAR_SCREEN
+	WIN_SCREEN_LOOP:
+	li $t9, 0xffff0000
+	lw $t8, 4($t9)
+	beq $t8, 0x70, START_MAIN
+	
+	li $t2, WHITE # $t2 stores the white colour code
+	li $t0, BASE_ADDRESS
+	
+	#draw YOU
+	addi $t0 $t0 10460 #t0 holds top left pixel address of YOU
+	#row 1
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0)
+	sw $t2, 28($t0) 
+	sw $t2, 32($t0) 
+	sw $t2, 36($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 64($t0) 
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0)
+	sw $t2, 24($t0) 
+	sw $t2, 40($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 64($t0) 
+	addi $t0, $t0, 512
+	#row 3
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0)	
+	sw $t2, 24($t0)
+	sw $t2, 40($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 64($t0) 
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	sw $t2, 24($t0) 
+	sw $t2, 40($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 64($t0) 
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 8($t0) 
+	sw $t2, 24($t0) 
+	sw $t2, 40($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 64($t0) 
+	addi $t0, $t0, 512
+	#row 6
+	sw $t2, 8($t0) 
+	sw $t2, 24($t0) 
+	sw $t2, 40($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 64($t0) 
+	addi $t0, $t0, 512
+	#row 7
+	sw $t2, 8($t0) 
+	sw $t2, 28($t0) 
+	sw $t2, 32($t0) 
+	sw $t2, 36($t0) 
+	sw $t2, 52($t0) 
+	sw $t2, 56($t0) 
+	sw $t2, 60($t0) 
+	addi $t0, $t0, 512
+	
+	#draw WIN
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 18140 #t0 holds top left pixel address of WIN
+	#row 1
+	sw $t2, 0($t0) 
+	sw $t2, 24($t0)
+	sw $t2, 32($t0) 
+	sw $t2, 36($t0) 
+	sw $t2, 40($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 52($t0) 
+	sw $t2, 68($t0) 
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 0($t0) 
+	sw $t2, 12($t0) 
+	sw $t2, 24($t0)
+	sw $t2, 36($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 56($t0) 
+	sw $t2, 68($t0) 
+	addi $t0, $t0, 512
+	#row 3
+	sw $t2, 0($t0) 
+	sw $t2, 12($t0) 
+	sw $t2, 24($t0)
+	sw $t2, 36($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 56($t0) 
+	sw $t2, 68($t0) 
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 0($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 16($t0)
+	sw $t2, 24($t0)
+	sw $t2, 36($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 60($t0) 
+	sw $t2, 68($t0)  
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 0($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 16($t0)
+	sw $t2, 24($t0)
+	sw $t2, 36($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 60($t0) 
+	sw $t2, 68($t0) 
+	addi $t0, $t0, 512
+	#row 6
+	sw $t2, 4($t0) 
+	sw $t2, 20($t0)
+	sw $t2, 36($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 64($t0) 
+	sw $t2, 68($t0) 
+	addi $t0, $t0, 512
+	#row 7
+	sw $t2, 4($t0) 
+	sw $t2, 20($t0)
+	sw $t2, 32($t0) 
+	sw $t2, 36($t0) 
+	sw $t2, 40($t0)
+	sw $t2, 48($t0) 
+	sw $t2, 68($t0) 
+	addi $t0, $t0, 512
+	
+	
+	j WIN_SCREEN_LOOP
+LOSE_SCREEN:
+	jal CLEAR_SCREEN
+	LOSE_SCREEN_LOOP:
+	li $t9, 0xffff0000
+	lw $t8, 4($t9)
+	beq $t8, 0x70, START_MAIN
+	
+	li $t2, WHITE # $t2 stores the white colour code
+	li $t0, BASE_ADDRESS
+	
+	#draw YOU
+	addi $t0 $t0 10460 #t0 holds top left pixel address of YOU
+	#row 1
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0)
+	sw $t2, 28($t0) 
+	sw $t2, 32($t0) 
+	sw $t2, 36($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 64($t0) 
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0)
+	sw $t2, 24($t0) 
+	sw $t2, 40($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 64($t0) 
+	addi $t0, $t0, 512
+	#row 3
+	sw $t2, 0($t0) 
+	sw $t2, 16($t0)	
+	sw $t2, 24($t0)
+	sw $t2, 40($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 64($t0) 
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	sw $t2, 24($t0) 
+	sw $t2, 40($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 64($t0) 
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 8($t0) 
+	sw $t2, 24($t0) 
+	sw $t2, 40($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 64($t0) 
+	addi $t0, $t0, 512
+	#row 6
+	sw $t2, 8($t0) 
+	sw $t2, 24($t0) 
+	sw $t2, 40($t0) 
+	sw $t2, 48($t0) 
+	sw $t2, 64($t0) 
+	addi $t0, $t0, 512
+	#row 7
+	sw $t2, 8($t0) 
+	sw $t2, 28($t0) 
+	sw $t2, 32($t0) 
+	sw $t2, 36($t0) 
+	sw $t2, 52($t0) 
+	sw $t2, 56($t0) 
+	sw $t2, 60($t0) 
+	addi $t0, $t0, 512
+	
+	#draw LOSE
+	li $t0, BASE_ADDRESS
+	addi $t0 $t0 18140 #t0 holds top left pixel address of LOSE
+	#row 1
+	sw $t2, 0($t0) 
+	sw $t2, 32($t0) 
+	sw $t2, 36($t0) 
+	sw $t2, 40($t0)
+	sw $t2, 56($t0) 
+	sw $t2, 60($t0) 
+	sw $t2, 64($t0) 
+	sw $t2, 76($t0) 
+	sw $t2, 80($t0) 
+	sw $t2, 84($t0) 
+	sw $t2, 88($t0) 
+	sw $t2, 92($t0) 
+	addi $t0, $t0, 512
+	#row 2
+	sw $t2, 0($t0) 
+	sw $t2, 28($t0) 
+	sw $t2, 44($t0) 
+	sw $t2, 52($t0) 
+	sw $t2, 68($t0) 
+	sw $t2, 76($t0) 
+	addi $t0, $t0, 512
+	#row 3
+	sw $t2, 0($t0) 
+	sw $t2, 28($t0) 
+	sw $t2, 44($t0) 
+	sw $t2, 52($t0) 
+	sw $t2, 76($t0) 
+	addi $t0, $t0, 512
+	#row 4
+	sw $t2, 0($t0) 
+	sw $t2, 28($t0) 
+	sw $t2, 44($t0) 
+	sw $t2, 56($t0) 
+	sw $t2, 60($t0) 
+	sw $t2, 64($t0) 
+	sw $t2, 76($t0) 
+	sw $t2, 80($t0) 
+	sw $t2, 84($t0) 
+	sw $t2, 88($t0) 
+	addi $t0, $t0, 512
+	#row 5
+	sw $t2, 0($t0) 
+	sw $t2, 28($t0) 
+	sw $t2, 44($t0)
+	sw $t2, 68($t0) 
+	sw $t2, 76($t0) 
+	addi $t0, $t0, 512
+	#row 6
+	sw $t2, 0($t0) 
+	sw $t2, 28($t0) 
+	sw $t2, 44($t0) 
+	sw $t2, 52($t0) 
+	sw $t2, 68($t0) 
+	sw $t2, 76($t0) 
+	addi $t0, $t0, 512
+	#row 7
+	sw $t2, 0($t0) 
+	sw $t2, 4($t0) 
+	sw $t2, 8($t0) 
+	sw $t2, 12($t0) 
+	sw $t2, 16($t0)
+	sw $t2, 20($t0)
+	sw $t2, 32($t0) 
+	sw $t2, 36($t0) 
+	sw $t2, 40($t0) 
+	sw $t2, 56($t0) 
+	sw $t2, 60($t0) 
+	sw $t2, 64($t0) 
+	sw $t2, 76($t0) 
+	sw $t2, 80($t0) 
+	sw $t2, 84($t0) 
+	sw $t2, 88($t0) 
+	sw $t2, 92($t0) 
+	addi $t0, $t0, 512
+	
+	j LOSE_SCREEN_LOOP
+
 CLEAR_SCREEN:
 	#clear screen
 	li $t9, BASE_ADDRESS
@@ -2237,7 +2531,7 @@ CLEAR_SCREEN:
 	j CLEAR_SCREEN_LOOP
 	CLEAR_DONE:
 	jr $ra
-	
+
 EXIT:
 	jal CLEAR_SCREEN
 	#exit
