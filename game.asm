@@ -494,7 +494,7 @@ MAIN_LOOP: #main loop for game
 	lw $t8 0($t0)
 	
 	bne $t7 0 CARROT_DOWN
-	beq $t8 -3 CARROT_DIRECTION_DOWN
+	beq $t8 -4 CARROT_DIRECTION_DOWN
 	move $t6 $t8
 	subi $t8 $t8 1
 	sw $t8 0($t0)
@@ -529,14 +529,11 @@ MAIN_LOOP: #main loop for game
 	
 	
 	#draw carrot 1
-	
-	
 	la $t0 CARROT_ONE
 	lw $t1 0($t0)
 	
 	li $a0 CARROT_1_END
 	addi $a0 $a0 BASE_ADDRESS
-	add $a0 $a0 $t6
 	
 	beq $t1 0 DRAW_CARROT_ONE
 	beq $t1 2 SKIP_DRAW_CARROT_ONE
@@ -547,6 +544,7 @@ MAIN_LOOP: #main loop for game
 	j SKIP_DRAW_CARROT_ONE
 	
 	DRAW_CARROT_ONE:
+	
 	li $a0 CARROT_1_END
 	addi $a0 $a0 BASE_ADDRESS
 	jal CLEAR_CARROT
@@ -573,6 +571,7 @@ MAIN_LOOP: #main loop for game
 	j SKIP_DRAW_CARROT_TWO
 	
 	DRAW_CARROT_TWO:
+	
 	li $a0 CARROT_2_END
 	addi $a0 $a0 BASE_ADDRESS
 	jal CLEAR_CARROT
@@ -662,12 +661,6 @@ LEFT:
 	lw $t1 4($t1)
 	beq $t1 RED AFTER_KEY_PRESS
 	#if not touching border wall
-	 
-	
-
-	
-	
-	jal CLEAR_BUNNY
 	subi $s4, $s4, 4
 	li $s2 1
 	
@@ -688,7 +681,7 @@ RIGHT:
 	lw $t1 4($t1)
 	beq $t1 RED AFTER_KEY_PRESS
 	#if not touching border wall
-	jal CLEAR_BUNNY
+
 	addi $s4, $s4, 4
 	li $s2 0
 	j DRAW_BUNNY
@@ -698,7 +691,6 @@ DRAW_BUNNY:
 	
 	#if invalid draw, dont update position
 	jal DRAW_BUNNY_HITBOX
-	jal CLEAR_BUNNY
 	add $s0 $s0 $s4
 	INVALID_DRAW:
 	
@@ -710,7 +702,7 @@ DRAW_BUNNY:
 #start from bottom right, to left
 #$s0 will contain the bottom right corner address of bunny sprite
 DRAW_BUNNY_LEFT:
-
+	jal CLEAR_BUNNY
 	beq $a1 1 DRAW_BUNNY_LEFT_RUNNING
 	
 	li $t1, BLACK # $t1 stores the black colour code
@@ -1052,6 +1044,8 @@ DRAW_BUNNY_LEFT_RUNNING:
 	j MAIN_LOOP
 	
 DRAW_BUNNY_RIGHT:
+	jal CLEAR_BUNNY
+	
 	li $t1, BLACK # $t1 stores the black colour code
 	li $t2, WHITE # $t2 stores the white colour code
 	move $t3, $s0
