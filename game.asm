@@ -22,18 +22,19 @@
 # 2. B. Fail condition [1 mark]
 # 3. C. Win condition [1 mark]
 # 4. D. Moving objects [2 mark]
-# 5. E. Moving platforms [2 marks]
+# 5. E. Moving platform [1 mark]
 # 6. K. Double jump [1 mark]
 # 7. M. Start menu [1 mark]
+# 8. L. Animated sprites [2 marks]
 #
 # Link to video demonstration for final submission:
-# - (insert YouTube / MyMedia / other URL here). Make sure we can view it!
+# - https://drive.google.com/file/d/1bEArnI2NRpONz6BQZfhbbLm4P3Hv0JrS/view?usp=sharing Make sure we can view it!
 #
 # Are you OK with us sharing the video with people outside course staff?
 # - yes to video and github. and please share this project github link as well! github:
 #
 # Any additional information that the TA needs to know:
-# - (write here, if any)
+# - press 'w' or 's' to alternate between options in start menu and press 'space' to select an option
 #
 #####################################################################
 
@@ -426,22 +427,10 @@ MAIN_LOOP: #main loop for game
 	beq $s1 1 JUMPING
 	j SKIP_JUMPING
 	JUMPING:
-	#check if above is platform
-#	move $t1 $s0
-#	subi $t1 $t1 512
-#	subi $t1 $t1 OFFSET_TOP_LEFT
-#	lw $t1 4($t1)
-#	beq $t1 RED RESET_JUMP
-	#check top left/right pixel
-#	move $t1 $s0
-#	subi $t1 $t1 512
-#	subi $t1 $t1 OFFSET_TOP_RIGHT
-#	lw $t1 4($t1)
-#	beq $t1 RED RESET_JUMP
-	
 	
 	###
 	move $t1 $s0
+	subi $t1 $t1 512
 	subi $t1 $t1 512
 	subi $t1 $t1 OFFSET_TOP_LEFT
 	
@@ -451,7 +440,7 @@ MAIN_LOOP: #main loop for game
 	addi $t1 $t1 4
 	beq $t2 RED RESET_JUMP
 	addi $t9 $t9 1
-	blt $t9 14 ABOVE_PLATFORM_CHECK_LOOP
+	blt $t9 15 ABOVE_PLATFORM_CHECK_LOOP
 	###
 	
 	
@@ -684,6 +673,15 @@ RIGHT:
 
 	addi $s4, $s4, 4
 	li $s2 0
+	
+	beq $a2 1 CHANGE_FRAME_RIGHT
+	li $a2 1
+	j SKIP_CHANGE_FRAME_RIGHT
+	CHANGE_FRAME_RIGHT:
+	li $a2 0
+	
+	SKIP_CHANGE_FRAME_RIGHT:
+	
 	j DRAW_BUNNY
 	j AFTER_KEY_PRESS
 
@@ -864,7 +862,6 @@ DRAW_BUNNY_LEFT:
 	j MAIN_LOOP
 
 
-#PROBABLY NOT USING AND DELETING
 DRAW_BUNNY_LEFT_RUNNING:
 	
 	li $a1 0
@@ -872,6 +869,7 @@ DRAW_BUNNY_LEFT_RUNNING:
 	li $t1, BLACK # $t1 stores the black colour code
 	li $t2, WHITE # $t2 stores the white colour code
 	move $t3, $s0
+	
 	#row 1
 	sw $t1, 0($t3) 
 	sw $t1, -4($t3) 
@@ -881,6 +879,7 @@ DRAW_BUNNY_LEFT_RUNNING:
 	sw $t1, -44($t3) 
 	sw $t1, -48($t3) 
 	
+
 	subi $t3, $t3, 512
 	#row 2
 	sw $t1, 0($t3) 
@@ -899,12 +898,11 @@ DRAW_BUNNY_LEFT_RUNNING:
 	sw $t1, -4($t3) 
 	sw $t1, -8($t3) 
 	sw $t2, -12($t3) 
-	
 	sw $t1, -16($t3) 
 	sw $t1, -20($t3) 
 	sw $t1, -24($t3) 
 	sw $t1, -28($t3) 
-	sw $t1, -32($t3)
+	sw $t1, -32($t3) 
 	sw $t2, -36($t3) 
 	sw $t2, -40($t3) 
 	sw $t2, -44($t3) 
@@ -920,9 +918,11 @@ DRAW_BUNNY_LEFT_RUNNING:
 	sw $t2, -24($t3) 
 	sw $t2, -28($t3) 
 	sw $t2, -32($t3) 
-	sw $t2, -36($t3) 
+	sw $t2, -36($t3)
 	sw $t2, -40($t3) 
 	sw $t1, -44($t3) 
+	
+
 	
 	subi $t3, $t3, 512
 	#row 5
@@ -938,7 +938,7 @@ DRAW_BUNNY_LEFT_RUNNING:
 	sw $t2, -40($t3) 
 	sw $t1, -44($t3) 
 	sw $t1, -48($t3) 
-	
+
 	subi $t3, $t3, 512
 	#row 6
 	sw $t1, 0($t3) 
@@ -953,14 +953,14 @@ DRAW_BUNNY_LEFT_RUNNING:
 	sw $t2, -36($t3) 
 	sw $t2, -40($t3) 
 	sw $t2, -44($t3) 
-	sw $t2, -48($t3)
-	sw $t1, -52($t3) 
+	sw $t2, -48($t3) 
+	sw $t1, -52($t3)  
 	
 	subi $t3, $t3, 512
 	#row 7
 	sw $t1, 0($t3) 
 	sw $t2, -4($t3) 
-	sw $t1, -8($t3) 
+	sw $t1, -8($t3)
 	sw $t2, -12($t3) 
 	sw $t2, -16($t3) 
 	sw $t2, -20($t3) 
@@ -991,7 +991,7 @@ DRAW_BUNNY_LEFT_RUNNING:
 	sw $t1, -52($t3) 
 	
 	subi $t3, $t3, 512
-	#row 9 
+	#row 9
 	sw $t1, -16($t3) 
 	sw $t1, -20($t3) 
 	sw $t1, -24($t3) 
@@ -1009,22 +1009,22 @@ DRAW_BUNNY_LEFT_RUNNING:
 	sw $t2, -32($t3) 
 	sw $t2, -36($t3) 
 	sw $t2, -40($t3) 
-	sw $t2, -44($t3) 
-	sw $t1, -48($t3)  
+	sw $t2, -44($t3)
+	sw $t1, -48($t3)
+	
+	subi $t3, $t3, 512
 	#row 11
 	sw $t1, -28($t3) 
 	sw $t2, -32($t3) 
 	sw $t1, -36($t3) 
 	sw $t2, -40($t3) 
 	sw $t1, -44($t3) 
-	
-	subi $t3, $t3, 512
 	#row 12
 	sw $t1, -28($t3) 
 	sw $t2, -32($t3) 
 	sw $t1, -36($t3) 
 	sw $t2, -40($t3) 
-	sw $t1, -44($t3) 
+	sw $t1, -44($t3)  
 	
 	subi $t3, $t3, 512
 	#row 13
@@ -1036,15 +1036,17 @@ DRAW_BUNNY_LEFT_RUNNING:
 	
 	subi $t3, $t3, 512
 	#row 14
-	sw $t1, -32($t3) 
-	sw $t1, -40($t3) 
+	sw $t2, -32($t3)
+	sw $t2, -40($t3) 
 	
+	subi $t3, $t3, 512
 	
 	
 	j MAIN_LOOP
 	
 DRAW_BUNNY_RIGHT:
 	jal CLEAR_BUNNY
+	beq $a2 1 DRAW_BUNNY_RIGHT_RUNNING
 	
 	li $t1, BLACK # $t1 stores the black colour code
 	li $t2, WHITE # $t2 stores the white colour code
@@ -1202,6 +1204,186 @@ DRAW_BUNNY_RIGHT:
 	
 	j MAIN_LOOP
 	
+DRAW_BUNNY_RIGHT_RUNNING:
+	
+	li $a2 0
+	
+	li $t1, BLACK # $t1 stores the black colour code
+	li $t2, WHITE # $t2 stores the white colour code
+	move $t3, $s0
+	#row 1
+	sw $t1, -4($t3) 
+	sw $t1, -8($t3) 
+	sw $t1, -12($t3)
+	sw $t1, -40($t3) 
+	sw $t1, -44($t3) 
+	sw $t1, -48($t3) 
+	sw $t1, -52($t3) 
+	
+	subi $t3, $t3, 512
+	#row 2
+	sw $t1, 0($t3) 
+	sw $t2, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t1, -16($t3) 
+	sw $t1, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t2, -44($t3) 
+	sw $t2, -48($t3) 
+	sw $t1, -52($t3) 
+	
+	subi $t3, $t3, 512
+	#row 3
+	sw $t1, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t1, -20($t3) 
+	sw $t1, -24($t3) 
+	sw $t1, -28($t3) 
+	sw $t1, -32($t3) 
+	sw $t1, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t1, -44($t3) 
+	sw $t1, -48($t3)
+	 
+
+	
+	subi $t3, $t3, 512
+	#row 4
+	sw $t1, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t2, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t1, -36($t3)
+	sw $t2, -40($t3) 
+	sw $t2, -44($t3) 
+	sw $t1, -48($t3) 
+	
+
+	subi $t3, $t3, 512
+	#row 5
+	sw $t1, -4($t3) 
+	sw $t1, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t2, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t2, -44($t3) 
+	sw $t1, -48($t3) 
+	
+	subi $t3, $t3, 512
+	#row 6
+	sw $t1, 0($t3) 
+	sw $t2, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t2, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t2, -44($t3) 
+	sw $t1, -48($t3) 
+	sw $t1, -52($t3) 
+	
+	subi $t3, $t3, 512
+	#row 7
+	sw $t1, 0($t3) 
+	sw $t2, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t1, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t2, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t2, -40($t3) 
+	sw $t1, -44($t3) 
+	sw $t2, -48($t3) 
+	sw $t1, -52($t3) 
+	
+	subi $t3, $t3, 512
+	#row 8
+	sw $t1, 0($t3) 
+	sw $t2, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t1, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t2, -24($t3) 
+	sw $t2, -28($t3) 
+	sw $t2, -32($t3) 
+	sw $t2, -36($t3) 
+	sw $t1, -40($t3) 
+	sw $t1, -44($t3) 
+	sw $t1, -48($t3) 
+	sw $t1, -52($t3) 
+	
+	subi $t3, $t3, 512
+	#row 9 
+	sw $t1, 0($t3) 
+	#sw $t2, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t2, -20($t3) 
+	#sw $t2, -24($t3) 
+	sw $t1, -28($t3) 
+	sw $t1, -32($t3) 
+	sw $t1, -36($t3) 
+	
+	subi $t3, $t3, 512
+	#row 10
+	sw $t1, -4($t3) 
+	sw $t2, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t2, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t1, -24($t3) 
+	
+	#row 11
+	sw $t1, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t1, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t1, -24($t3) 
+	
+	
+	subi $t3, $t3, 512
+	#row 12
+	sw $t1, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t1, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t1, -24($t3) 
+	
+	subi $t3, $t3, 512
+	#row 13
+	sw $t1, -8($t3) 
+	sw $t2, -12($t3) 
+	sw $t1, -16($t3) 
+	sw $t2, -20($t3) 
+	sw $t1, -24($t3) 
+	
+	subi $t3, $t3, 512
+	#row 14
+	sw $t2, -12($t3) 
+	sw $t2, -20($t3) 
+	
+	j MAIN_LOOP
+	
 CLEAR_BUNNY:
 	li $t1, 0x000000 # $t1 stores the black colour code
 	move $t3, $s0
@@ -1224,7 +1406,7 @@ CLEAR_BUNNY:
 	sw $t1, -52($t3) 
 	subi $t3, $t3, 512
 	addi $t8 $t8 1
-	blt $t8 13 CLEAR_BUNNY_LOOP
+	blt $t8 14 CLEAR_BUNNY_LOOP
 	
 	jr $ra
 	
