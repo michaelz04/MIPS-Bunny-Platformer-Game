@@ -28,10 +28,10 @@
 # 8. L. Animated sprites [2 marks]
 #
 # Link to video demonstration for final submission:
-# - https://drive.google.com/file/d/1bEArnI2NRpONz6BQZfhbbLm4P3Hv0JrS/view?usp=sharing Make sure we can view it!
+# - https://drive.google.com/file/d/1bEArnI2NRpONz6BQZfhbbLm4P3Hv0JrS/view?usp=sharing 
 #
 # Are you OK with us sharing the video with people outside course staff?
-# - yes to video and github. and please share this project github link as well! github:
+# - yes to video and github. and please share this project github link as well! github: https://github.com/michaelz04/final-project-cscb58
 #
 # Any additional information that the TA needs to know:
 # - press 'w' or 's' to alternate between options in start menu and press 'space' to select an option
